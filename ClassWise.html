@@ -2001,6 +2001,65 @@ let _aichatAttachment = null;        // { name, kind, text }  当前待发送的
 let _aichatPendingId = 0;
 const _aichatPending = {};
 
+/* === 构建给 AI 看的数据库快照 === */
+function buildAIDBSnapshot(term, exam) {
+  if (!DB.students.length) return '【数据库当前状态】\n空数据库（还没录入任何学生）\n';
+
+  let out = '【数据库当前状态】\n';
+
+  // 按班级分组
+  const byClass = {};
+  DB.students.forEach(s => { (byClass[s.class || '未分班'] ||= []).push(s); });
+  out += `班级总览（${Object.keys(byClass).length} 个班，${DB.students.length} 名学生）:\n`;
+  Object.entries(byClass).forEach(([cls, list]) => {
+    out += `- ${cls}: ${list.length}人 - ${list.map(s => s.name).join('、')}\n`;
+  });
+
+  // 当前学期 + 考试的成绩覆盖矩阵
+  const currentGrades = DB.grades.filter(g => g.term === term && g.examType === exam);
+  const subjects = [...new Set(currentGrades.map(g => g.subject))].sort();
+
+  out += `\n本次成绩（${term} ${exam}） — 已录科目：${subjects.length ? subjects.join('、') : '【无】'}\n`;
+
+  if (subjects.length) {
+    out += `成绩覆盖矩阵（学生 → 已录入的"科目=分数"，未列出即未录）:\n`;
+    // 限制最多 150 行，每行最多 8 科
+    DB.students.slice(0, 150).forEach(s => {
+      const got = currentGrades.filter(g => g.studentId === s.id).map(g => `${g.subject}=${g.score}`);
+      out += `- ${s.name}: ${got.length ? got.slice(0, 8).join(', ') : '【全部未录入】'}\n`;
+    });
+  }
+
+  // 今日考勤
+  const today = new Date().toISOString().slice(0,10);
+  const todayAtt = DB.attendance.filter(a => a.date === today);
+  if (todayAtt.length) {
+    const byStatus = {};
+    todayAtt.forEach(a => { byStatus[a.status] = (byStatus[a.status]||0) + 1; });
+    out += `\n今日考勤（${today}）: ${Object.entries(byStatus).map(([k,v])=>`${k}${v}人`).join('、')}\n`;
+  } else {
+    out += `\n今日（${today}）尚无考勤记录\n`;
+  }
+
+  return out;
+}
+
+/* === 取最近 6 轮对话作为上下文 === */
+function getRecentChatContext(currentInput) {
+  const msgs = [...document.querySelectorAll('#aichat-window .aichat-msg')];
+  // 排除当前用户消息本身（刚刚 append 上去的）
+  const recent = msgs.slice(-7, -1); // 倒数 6 条但不含最后一条
+  if (!recent.length) return '';
+  let out = '【最近对话】\n';
+  recent.forEach(m => {
+    const role = m.classList.contains('user') ? '老师' : 'AI';
+    const text = (m.querySelector('.aichat-bubble')?.textContent || '').slice(0, 250);
+    if (text) out += `${role}: ${text}\n`;
+  });
+  return out + '\n';
+}
+
+
 async function aiChatSend() {
   const input = document.getElementById('aichat-input');
   const btn = document.getElementById('aichat-send-btn');
@@ -2022,8 +2081,9 @@ async function aiChatSend() {
   const today = new Date().toISOString().slice(0,10);
   const term  = document.getElementById('grade-term')?.value || '2025-2026上';
   const exam  = document.getElementById('grade-exam')?.value || '期末';
-  const names = DB.students.map(s => s.name).slice(0, 120).join('、') || '（数据库为空，老师可能要先建学生）';
 
+  const dbSnapshot = buildAIDBSnapshot(term, exam);
+  const chatCtx = getRecentChatContext(text);
   const fileBlock = att ? `\n\n用户上传了文件「${att.name}」，内容如下（已自动提取为文本）：\n---FILE_START---\n${att.text.slice(0, 6000)}\n---FILE_END---\n` : '';
 
   const prompt = `你是教务数据助手。任务：把用户口语描述（或上传的文件）解析为结构化操作。
@@ -2067,9 +2127,17 @@ END
 - 今天：${today}
 - 默认学期：${term}
 - 默认考试类型：${exam}
-- 已有学生姓名（成绩/考勤/笔记的 name 必须从中匹配）：${names}${fileBlock}
+
+${dbSnapshot}
+${chatCtx}${fileBlock}
 
 老师输入："${text || '(无文字，请根据上传的文件推断要做什么)'}"
+
+回应规则（重要）：
+- 用户用代词、省略或继承语境时（如"继续录入"、"没录入的"、"再来一个"、"全部"、"全班"），必须结合上面的【数据库当前状态】和【最近对话】判断他真正想要什么，不要无脑反问
+- 如果用户说"没录入的录入"，请扫描成绩矩阵找出缺失的 学生×科目 组合，生成对应 OP
+- 如果用户说"继续/再来"，参考最近对话推断上一轮在做什么（学生姓名、科目、考试），延续操作
+- 只有当确实无法从上下文推断（比如完全空数据库或意图不明）时，才用 CLARIFY: 反问
 
 开始输出（注意：第一行必须以 EXPLANATION: 开头）：
 `;
@@ -3215,31 +3283,27 @@ async function gaiSend() {
   _gaiAppend('user', text);
   btn.disabled = true; btnText.textContent = '…';
 
-  // 给全局 AI 富上下文：当前页 + 数据统计 + 学生姓名
-  const stuCount = (typeof DB !== 'undefined') ? DB.students.length : 0;
-  const grdCount = (typeof DB !== 'undefined') ? DB.grades.length : 0;
-  const attCount = (typeof DB !== 'undefined') ? DB.attendance.length : 0;
-  const classes = (typeof DB !== 'undefined') ? [...new Set(DB.students.map(s => s.class))].filter(Boolean).join('、') : '';
-  const recentGrades = (typeof DB !== 'undefined') ? DB.grades.slice(-30).map(g => {
-    const s = DB.students.find(x=>x.id===g.studentId);
-    return s ? `${s.name} ${g.subject} ${g.score}` : '';
-  }).filter(Boolean).join('；') : '';
+  // 给全局 AI 完整数据库快照（让它真的"看到"数据）
   const today = new Date().toLocaleDateString('zh-CN');
+  const term  = document.getElementById('grade-term')?.value || '2025-2026上';
+  const exam  = document.getElementById('grade-exam')?.value || '期末';
   const activePageId = document.querySelector('.page.active')?.id || '';
   const activePage = activePageId.replace('page-', '') || '首页';
+  const dbSnapshot = (typeof buildAIDBSnapshot === 'function') ? buildAIDBSnapshot(term, exam) : '';
 
   const prompt = `你是教务系统 ClassWise 的智能助手，帮老师答疑或给建议。请用简短自然的中文回答，1-3 句话即可，不要写代码、不要 JSON、不要 markdown 标题。
 
-系统数据上下文：
+上下文：
 - 今天：${today}
 - 当前页面：${activePage}
-- 学生总数：${stuCount}（班级：${classes || '无'}）
-- 成绩条数：${grdCount}
-- 考勤条数：${attCount}
-- 最近成绩样本：${recentGrades || '无'}
+- 默认学期：${term}，考试：${exam}
 
-如果老师想录入数据，告诉他可以点左边「AI 对话录入」专门做，或者点右上"去对话录入页"链接。
-如果数据不够用回答，直接说明缺什么。
+${dbSnapshot}
+
+回答规则：
+- 你可以直接基于上面的数据库快照计算和回答（如平均分、缺录入的学生、谁最高等）
+- 如果老师想批量录入数据，提示他点"去对话录入页"
+- 数据不够用时直接说明缺什么
 
 老师问：${text}
 
