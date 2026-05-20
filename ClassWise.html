@@ -796,6 +796,51 @@
             <span id="aichat-send-text">发送</span>
           </button>
         </div>
+
+        <!-- 快捷 AI 工具：评语 / 分析 / 总结 / 问答 -->
+        <h6 class="text-muted mt-4 mb-2" style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">🚀 AI 快捷工具</h6>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="card p-3">
+              <h6>✍️ 一键生成学生评语</h6>
+              <div class="mb-2">
+                <select id="ai-stu-select" class="form-select"></select>
+              </div>
+              <button class="btn btn-primary btn-sm mb-2" onclick="aiGenComment()">生成评语</button>
+              <div class="ai-output" id="ai-out-comment">评语将在这里显示...</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card p-3">
+              <h6>📈 成绩分析报告</h6>
+              <div class="mb-2">
+                <select id="ai-cls-select" class="form-select"></select>
+              </div>
+              <button class="btn btn-primary btn-sm mb-2" onclick="aiAnalyze()">分析成绩</button>
+              <div class="ai-output" id="ai-out-analyze">分析将在这里显示...</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card p-3">
+              <h6>📝 期末班级总结</h6>
+              <div class="mb-2">
+                <select id="ai-summary-cls" class="form-select"></select>
+              </div>
+              <button class="btn btn-primary btn-sm mb-2" onclick="aiSummary()">生成总结</button>
+              <div class="ai-output" id="ai-out-summary">总结将在这里显示...</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card p-3">
+              <h6>💬 自然语言问答</h6>
+              <div class="mb-2">
+                <input id="ai-question" class="form-control" placeholder='例如："谁的数学最差？"'>
+              </div>
+              <button class="btn btn-primary btn-sm mb-2" onclick="aiAsk()">提问</button>
+              <div class="ai-output" id="ai-out-ask">回答将在这里显示...</div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="page" id="page-ai">
@@ -857,49 +902,6 @@
             </div>
           </div>
           <div class="ai-status mt-2" id="dssk-status">尚未配置 · 申请 Key: <a href="https://platform.deepseek.com/api_keys" target="_blank">platform.deepseek.com</a></div>
-        </div>
-
-        <div class="row g-3">
-          <div class="col-md-6">
-            <div class="card p-3">
-              <h6>✍️ 一键生成学生评语</h6>
-              <div class="mb-2">
-                <select id="ai-stu-select" class="form-select"></select>
-              </div>
-              <button class="btn btn-primary btn-sm mb-2" onclick="aiGenComment()">生成评语</button>
-              <div class="ai-output" id="ai-out-comment">评语将在这里显示...</div>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="card p-3">
-              <h6>📈 成绩分析报告</h6>
-              <div class="mb-2">
-                <select id="ai-cls-select" class="form-select"></select>
-              </div>
-              <button class="btn btn-primary btn-sm mb-2" onclick="aiAnalyze()">分析成绩</button>
-              <div class="ai-output" id="ai-out-analyze">分析将在这里显示...</div>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="card p-3">
-              <h6>📝 期末班级总结</h6>
-              <div class="mb-2">
-                <select id="ai-summary-cls" class="form-select"></select>
-              </div>
-              <button class="btn btn-primary btn-sm mb-2" onclick="aiSummary()">生成总结</button>
-              <div class="ai-output" id="ai-out-summary">总结将在这里显示...</div>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="card p-3">
-              <h6>💬 自然语言问答</h6>
-              <div class="mb-2">
-                <input id="ai-question" class="form-control" placeholder='例如："谁的数学最差？"'>
-              </div>
-              <button class="btn btn-primary btn-sm mb-2" onclick="aiAsk()">提问</button>
-              <div class="ai-output" id="ai-out-ask">回答将在这里显示...</div>
-            </div>
-          </div>
         </div>
 
         <div class="card p-3 mt-3">
@@ -1140,6 +1142,7 @@ document.querySelectorAll('#mainNav .nav-link').forEach(a => {
     if (a.dataset.page==='grades') { refreshClassOptions(); renderGrades(); }
     if (a.dataset.page==='attendance') { refreshClassOptions(); renderAttendance(); }
     if (a.dataset.page==='ai') { refreshAIOptions(); }
+    if (a.dataset.page==='aichat') { refreshAIOptions(); }
     if (a.dataset.page==='ocr') { updateOcrEngineHint(); }
   });
 });
