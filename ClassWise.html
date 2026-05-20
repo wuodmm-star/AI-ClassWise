@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ClassWise · 教务处理系统 v2.0</title>
+<title>ClassWise · 教务处理系统 v4.0</title>
 <link href="./libs/bootstrap.min.css" rel="stylesheet">
 <script src="./libs/xlsx.full.min.js"></script>
 
@@ -375,6 +375,96 @@
     .ai-picker-bar { flex-wrap:wrap; }
     .ai-picker-select { max-width:100%; width:100%; margin-left:0; }
   }
+
+  /* === AI Chat 数据录入 === */
+  .aichat-quick { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .aichat-quick .btn { font-size:12px; padding:4px 10px; border-radius:18px; }
+  .aichat-window {
+    background:var(--bg-card-solid);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:18px;
+    min-height:360px;
+    max-height:520px;
+    overflow-y:auto;
+    margin-bottom:12px;
+  }
+  .aichat-msg { display:flex; gap:10px; margin-bottom:14px; align-items:flex-start; }
+  .aichat-msg.user { flex-direction:row-reverse; }
+  .aichat-avatar {
+    width:32px; height:32px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:700;
+    flex-shrink:0;
+    letter-spacing:0;
+  }
+  .aichat-msg.ai .aichat-avatar { background:linear-gradient(135deg, #8b5cf6, #06b6d4); color:#fff; }
+  .aichat-msg.user .aichat-avatar { background:var(--accent); color:#fff; }
+  .aichat-bubble {
+    background:var(--bg-hover);
+    padding:10px 14px;
+    border-radius:14px;
+    max-width:78%;
+    font-size:14px;
+    line-height:1.55;
+    word-break:break-word;
+    white-space:pre-wrap;
+    color:var(--text);
+  }
+  .aichat-msg.user .aichat-bubble { background:var(--accent); color:#fff; }
+  .aichat-input-wrap {
+    display:flex; gap:10px;
+    padding:10px;
+    background:var(--bg-card-solid);
+    border:1px solid var(--border);
+    border-radius:14px;
+    align-items:flex-end;
+  }
+  .aichat-input-wrap textarea {
+    flex:1;
+    resize:none;
+    min-height:48px;
+    max-height:160px;
+    border:none;
+    background:transparent;
+    color:var(--text);
+    font-size:14px;
+    outline:none;
+    padding:8px 10px;
+    font-family:inherit;
+    line-height:1.5;
+  }
+  .aichat-op {
+    display:flex; align-items:center; gap:10px;
+    padding:8px 12px;
+    background:var(--bg-stripe);
+    border-radius:8px;
+    margin:6px 0;
+    font-size:13px;
+  }
+  .aichat-op-type {
+    padding:2px 8px;
+    border-radius:6px;
+    font-size:11px;
+    font-weight:600;
+    flex-shrink:0;
+  }
+  .aichat-op-type.student    { background:rgba(0,113,227,0.15);   color:#0071e3; }
+  .aichat-op-type.grade      { background:rgba(16,185,129,0.15);  color:#10b981; }
+  .aichat-op-type.attendance { background:rgba(245,158,11,0.15);  color:#f59e0b; }
+  .aichat-confirm-btn {
+    display:inline-flex; align-items:center; gap:6px;
+    background:#10b981; color:#fff;
+    padding:7px 14px;
+    border-radius:8px;
+    border:none;
+    font-size:13px; font-weight:600;
+    cursor:pointer;
+    margin-top:8px;
+    transition:background .2s;
+  }
+  .aichat-confirm-btn:hover { background:#0ea870; }
+  .aichat-confirm-btn:disabled { background:var(--text-muted); cursor:default; }
 </style>
 </head>
 <body>
@@ -389,7 +479,7 @@
         </div>
         <div class="sidebar-brand-text">
           <h4>ClassWise</h4>
-          <small>v2.0 · 教务助手</small>
+          <small>v4.0 · 教务助手</small>
         </div>
       </div>
 
@@ -421,6 +511,10 @@
           <span>报表导出</span>
         </a></li>
         <div class="nav-sep"></div>
+        <li class="nav-item"><a class="nav-link" data-page="aichat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="12" y1="8" x2="12" y2="14"/></svg>
+          <span>AI 对话录入</span>
+        </a></li>
         <li class="nav-item"><a class="nav-link" data-page="ai">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.6 4.8L18 9.4l-4.4 1.6L12 16l-1.6-5L6 9.4l4.4-1.6z"/><path d="M19 14l.7 2.1L22 17l-2.3.9L19 20l-.7-2.1L16 17l2.3-.9z"/><path d="M5 16l.5 1.5L7 18l-1.5.5L5 20l-.5-1.5L3 18l1.5-.5z"/></svg>
           <span>AI 助手</span>
@@ -469,7 +563,7 @@
         <div class="magnet-grid">
 
           <!-- 1. AI 对话数据录入 -->
-          <div class="magnet-card" data-page="ai" style="--card-rgb:139,92,246;">
+          <div class="magnet-card" data-page="aichat" style="--card-rgb:139,92,246;">
             <div class="magnet-icon">💬</div>
             <h6 class="magnet-title">AI 对话数据录入</h6>
             <p class="magnet-desc">自然语言对话，让 AI 帮你录入学生、成绩、考勤数据</p>
@@ -670,6 +764,40 @@
       </section>
 
       <!-- AI 助手 -->
+      <!-- AI 对话数据录入 -->
+      <section class="page" id="page-aichat">
+        <div class="d-flex justify-content-between align-items-end mb-1">
+          <h2 class="page-title mb-0">AI 对话数据录入</h2>
+          <button class="btn btn-sm btn-outline-secondary" onclick="aiChatClear()">清空对话</button>
+        </div>
+        <p class="dash-subtitle mb-3">用自然语言告诉 AI 要录入什么，确认后写入数据库</p>
+
+        <div class="card p-3 mb-3">
+          <small class="text-muted">💡 试试这样说：</small>
+          <div class="aichat-quick">
+            <button class="btn btn-outline-secondary" onclick="aiChatFill(this)">添加学生：张三，学号20240301，高一三班，男</button>
+            <button class="btn btn-outline-secondary" onclick="aiChatFill(this)">张三 数学 95分</button>
+            <button class="btn btn-outline-secondary" onclick="aiChatFill(this)">李四 今天 缺勤</button>
+            <button class="btn btn-outline-secondary" onclick="aiChatFill(this)">高一三班 全员今天出勤</button>
+            <button class="btn btn-outline-secondary" onclick="aiChatFill(this)">王五 期末 语文88 数学92 英语76</button>
+          </div>
+        </div>
+
+        <div class="aichat-window" id="aichat-window">
+          <div class="aichat-msg ai">
+            <div class="aichat-avatar">AI</div>
+            <div class="aichat-bubble">您好！告诉我要录入什么数据，比如「新增学生张三高一三班男」「李四今天迟到」「王五数学95分」。我会先解析给您看，您点确认我才写入数据库。</div>
+          </div>
+        </div>
+
+        <div class="aichat-input-wrap">
+          <textarea id="aichat-input" placeholder="说点什么…（Enter 发送，Shift+Enter 换行）" rows="2"></textarea>
+          <button class="btn btn-primary" onclick="aiChatSend()" id="aichat-send-btn" style="padding:10px 20px;align-self:stretch;">
+            <span id="aichat-send-text">发送</span>
+          </button>
+        </div>
+      </section>
+
       <section class="page" id="page-ai">
         <h2 class="page-title">AI 助手</h2>
         <div class="card p-3 mb-3">
@@ -1588,6 +1716,180 @@ function updateAIPickerStatus() {
     st.textContent = '本地 Ollama · ' + ai.model + ' @ ' + ai.endpoint;
     st.className = 'ai-picker-status';
   }
+}
+
+/* ==================== AI 对话数据录入 ==================== */
+function _escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+
+function aiChatFill(btn) {
+  const ta = document.getElementById('aichat-input');
+  ta.value = btn.textContent;
+  ta.focus();
+}
+
+function aiChatClear() {
+  document.getElementById('aichat-window').innerHTML = `
+    <div class="aichat-msg ai">
+      <div class="aichat-avatar">AI</div>
+      <div class="aichat-bubble">对话已清空。继续告诉我要录入什么。</div>
+    </div>`;
+}
+
+function aiChatAppend(role, html, isHTML) {
+  const win = document.getElementById('aichat-window');
+  const id = 'amsg-' + Date.now() + '-' + Math.random().toString(36).slice(2,7);
+  const avatar = role === 'user' ? '我' : 'AI';
+  const content = isHTML ? html : _escapeHtml(html);
+  win.insertAdjacentHTML('beforeend',
+    `<div class="aichat-msg ${role}" id="${id}"><div class="aichat-avatar">${avatar}</div><div class="aichat-bubble">${content}</div></div>`);
+  win.scrollTop = win.scrollHeight;
+  return id;
+}
+
+// 仅在 aichat 页面：Enter 发送，Shift+Enter 换行
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.shiftKey) return;
+  const ta = document.getElementById('aichat-input');
+  if (!ta || document.activeElement !== ta) return;
+  e.preventDefault();
+  aiChatSend();
+});
+
+async function aiChatSend() {
+  const input = document.getElementById('aichat-input');
+  const btn = document.getElementById('aichat-send-btn');
+  const btnText = document.getElementById('aichat-send-text');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  aiChatAppend('user', text);
+
+  btn.disabled = true; btnText.textContent = '解析中…';
+
+  // 给 AI 必要上下文：今天日期、当前学期、考试类型、学生姓名表（避免幻觉）
+  const today = new Date().toISOString().slice(0,10);
+  const term  = document.getElementById('grade-term')?.value || '2025-2026上';
+  const exam  = document.getElementById('grade-exam')?.value || '期末';
+  const names = DB.students.map(s => s.name).slice(0, 80).join('、') || '（数据库为空）';
+
+  const prompt = `你是教务数据助手，必须输出严格的 JSON，不要 markdown、不要任何解释文字。
+
+支持三种操作类型：
+- add_student：新增学生。data 字段：{"no":"学号","name":"姓名","class":"班级","gender":"男/女","contact":"联系方式可空"}
+- add_grade：录入成绩。data 字段：{"name":"学生姓名","subject":"科目","score":数字,"term":"学期","examType":"考试类型"}
+- add_attendance：录入考勤。data 字段：{"name":"学生姓名","date":"YYYY-MM-DD","status":"出勤/缺勤/请假/迟到"}
+
+上下文：
+- 今天：${today}
+- 默认学期：${term}
+- 默认考试类型：${exam}
+- 已有学生姓名（成绩/考勤的 name 必须从中选）：${names}
+
+输出格式（严格）：
+{"operations":[{"type":"add_student","data":{...}},...],"explanation":"一句话中文说明"}
+
+如果用户一句话里有多个学生/多科目，要拆成多个 operations。
+如果无法解析或缺关键字段，operations 留空数组，在 explanation 里说明缺什么。
+
+老师输入："${text}"
+
+JSON：`;
+
+  const tmpId = aiChatAppend('ai', '思考中…');
+  const bubble = document.querySelector('#' + tmpId + ' .aichat-bubble');
+
+  let response = '';
+  try {
+    response = await ollamaChat(prompt, t => { bubble.textContent = t.slice(0, 200) + (t.length > 200 ? '…' : ''); });
+    const m = response.match(/\{[\s\S]*\}/);
+    if (!m) throw new Error('AI 没返回 JSON，原始输出：' + response.slice(0,200));
+    const parsed = JSON.parse(m[0]);
+    aiChatRenderPreview(parsed, bubble);
+  } catch(e) {
+    bubble.textContent = '⚠️ 解析失败：' + e.message;
+  } finally {
+    btn.disabled = false; btnText.textContent = '发送';
+  }
+}
+
+let _aichatPendingId = 0;
+const _aichatPending = {};
+
+function aiChatRenderPreview(parsed, bubble) {
+  const ops = parsed.operations || [];
+  if (!ops.length) {
+    bubble.textContent = parsed.explanation || '我没识别出可录入的数据，请再描述清楚一些。';
+    return;
+  }
+  const pendingId = ++_aichatPendingId;
+  _aichatPending[pendingId] = ops;
+
+  let html = `<div style="margin-bottom:6px;">${_escapeHtml(parsed.explanation || '准备录入以下数据：')}</div>`;
+  ops.forEach(op => {
+    let badge = '', body = '';
+    if (op.type === 'add_student') {
+      badge = '<span class="aichat-op-type student">学生</span>';
+      body = `${_escapeHtml(op.data.name||'?')} · ${_escapeHtml(op.data.class||'?')} · ${_escapeHtml(op.data.gender||'?')} · 学号 ${_escapeHtml(op.data.no||'?')}`;
+    } else if (op.type === 'add_grade') {
+      badge = '<span class="aichat-op-type grade">成绩</span>';
+      body = `${_escapeHtml(op.data.name||'?')} · ${_escapeHtml(op.data.subject||'?')} <b>${_escapeHtml(String(op.data.score??'?'))}</b> 分（${_escapeHtml(op.data.term||'')} ${_escapeHtml(op.data.examType||'')}）`;
+    } else if (op.type === 'add_attendance') {
+      badge = '<span class="aichat-op-type attendance">考勤</span>';
+      body = `${_escapeHtml(op.data.name||'?')} · ${_escapeHtml(op.data.date||'?')} · <b>${_escapeHtml(op.data.status||'?')}</b>`;
+    } else {
+      badge = '<span class="aichat-op-type">?</span>';
+      body = _escapeHtml(JSON.stringify(op));
+    }
+    html += `<div class="aichat-op">${badge}<span>${body}</span></div>`;
+  });
+  html += `<button class="aichat-confirm-btn" onclick="aiChatConfirm(${pendingId})">✓ 确认录入 ${ops.length} 条</button>`;
+  bubble.innerHTML = html;
+}
+
+function aiChatConfirm(pendingId) {
+  const ops = _aichatPending[pendingId];
+  if (!ops) return;
+  let added = 0, skipped = 0;
+  const reasons = [];
+  ops.forEach(op => {
+    try {
+      if (op.type === 'add_student') {
+        if (!op.data.no || !op.data.name) { skipped++; reasons.push('学生缺学号或姓名'); return; }
+        DB.students.push({ id: uid(), no: String(op.data.no), name: op.data.name, class: op.data.class || '', gender: op.data.gender === '女' ? '女' : '男', contact: op.data.contact || '' });
+        added++;
+      } else if (op.type === 'add_grade') {
+        const s = DB.students.find(x => x.name === op.data.name);
+        if (!s) { skipped++; reasons.push(`找不到学生「${op.data.name}」`); return; }
+        if (!op.data.subject || isNaN(Number(op.data.score))) { skipped++; reasons.push('成绩缺科目或分数'); return; }
+        const term = op.data.term || '2025-2026上';
+        const exam = op.data.examType || '期末';
+        const idx = DB.grades.findIndex(g => g.studentId===s.id && g.subject===op.data.subject && g.term===term && g.examType===exam);
+        const rec = { studentId: s.id, subject: op.data.subject, score: Number(op.data.score), term, examType: exam };
+        if (idx>=0) DB.grades[idx] = rec; else DB.grades.push(rec);
+        added++;
+      } else if (op.type === 'add_attendance') {
+        const s = DB.students.find(x => x.name === op.data.name);
+        if (!s) { skipped++; reasons.push(`找不到学生「${op.data.name}」`); return; }
+        const date = op.data.date || new Date().toISOString().slice(0,10);
+        const validStatus = ['出勤','缺勤','请假','迟到'].includes(op.data.status) ? op.data.status : '出勤';
+        const idx = DB.attendance.findIndex(a => a.studentId===s.id && a.date===date);
+        if (idx>=0) DB.attendance[idx].status = validStatus;
+        else DB.attendance.push({ studentId: s.id, date, status: validStatus });
+        added++;
+      } else { skipped++; reasons.push('未知操作类型 ' + op.type); }
+    } catch(e) { skipped++; reasons.push(e.message); }
+  });
+  saveDB();
+  refreshClassOptions();
+  if (typeof renderDashboard === 'function') renderDashboard();
+  if (typeof renderStudents === 'function' && document.querySelector('#page-students.active')) renderStudents();
+  if (typeof renderGrades === 'function' && document.querySelector('#page-grades.active')) renderGrades();
+  if (typeof renderAttendance === 'function' && document.querySelector('#page-attendance.active')) renderAttendance();
+
+  delete _aichatPending[pendingId];
+  let msg = `✅ 已写入 ${added} 条数据`;
+  if (skipped) msg += `（跳过 ${skipped} 条：${[...new Set(reasons)].join('；')}）`;
+  aiChatAppend('ai', msg);
 }
 async function aiGenComment() {
   const out = document.getElementById('ai-out-comment');
