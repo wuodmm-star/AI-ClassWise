@@ -1,0 +1,1929 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClassWise · 教务处理系统 v2.0</title>
+<link href="./libs/bootstrap.min.css" rel="stylesheet">
+<script src="./libs/xlsx.full.min.js"></script>
+
+<style>
+  /* === Apple-inspired Theme System === */
+  :root {
+    /* Light mode (Apple's standard) */
+    --bg: #f5f5f7;
+    --bg-card: rgba(255,255,255,0.72);
+    --bg-card-solid: #ffffff;
+    --bg-input: #ffffff;
+    --bg-sidebar: rgba(255,255,255,0.6);
+    --bg-hover: rgba(0,0,0,0.04);
+    --bg-stripe: #fafafc;
+    --bg-aibar: rgba(245,245,247,0.75);
+    --text: #1d1d1f;
+    --text-sub: #424245;
+    --text-muted: #86868b;
+    --border: rgba(0,0,0,0.08);
+    --border-strong: rgba(0,0,0,0.12);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 1px 1px rgba(0,0,0,0.03);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.04);
+    --shadow-lg: 0 12px 32px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+    --shadow-hover: 0 16px 40px rgba(0,113,227,0.12), 0 4px 12px rgba(0,113,227,0.08);
+    --accent: #0071e3;
+    --accent-hover: #0077ed;
+    --accent-soft: rgba(0,113,227,0.10);
+    --att-attend: #d1fae5;
+    --att-absent: #fee2e2;
+    --att-leave: #fef3c7;
+    --att-late: #dbeafe;
+    --success: #34c759;
+    --warning: #ff9f0a;
+    --danger: #ff3b30;
+    --radius-sm: 8px;
+    --radius: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --blur: saturate(180%) blur(20px);
+    --transition: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  [data-theme="dark"] {
+    --bg: #000000;
+    --bg-card: rgba(28,28,30,0.7);
+    --bg-card-solid: #1c1c1e;
+    --bg-input: #2c2c2e;
+    --bg-sidebar: rgba(28,28,30,0.6);
+    --bg-hover: rgba(255,255,255,0.06);
+    --bg-stripe: #1c1c1e;
+    --bg-aibar: rgba(28,28,30,0.75);
+    --text: #f5f5f7;
+    --text-sub: #d1d1d6;
+    --text-muted: #8e8e93;
+    --border: rgba(255,255,255,0.10);
+    --border-strong: rgba(255,255,255,0.16);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+    --shadow-lg: 0 12px 32px rgba(0,0,0,0.5);
+    --shadow-hover: 0 16px 40px rgba(10,132,255,0.25);
+    --accent: #0a84ff;
+    --accent-hover: #2997ff;
+    --accent-soft: rgba(10,132,255,0.15);
+    --att-attend: #0a3622;
+    --att-absent: #4a1820;
+    --att-leave: #4a3a10;
+    --att-late: #0a2e52;
+  }
+
+  /* === Base === */
+  * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  html, body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; }
+  body { background:var(--bg); font-size:15px; color:var(--text); transition: background .3s var(--transition), color .3s var(--transition); letter-spacing:-0.01em; }
+
+  /* === Sidebar === */
+  .sidebar { background:var(--bg-sidebar); backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur); min-height:100vh; border-right:1px solid var(--border); padding:24px 0; }
+  .sidebar .nav-link { color:var(--text-sub); padding:11px 22px; margin:1px 12px; border-radius:10px; font-size:14px; font-weight:500; transition:all .2s var(--transition); }
+  .sidebar .nav-link.active { background:var(--accent); color:#fff; box-shadow:0 2px 8px rgba(0,113,227,0.3); }
+  .sidebar .nav-link:hover:not(.active) { background:var(--bg-hover); color:var(--text); }
+  .sidebar-brand { padding:0 22px 18px; border-bottom:1px solid var(--border); margin:0 0 12px; }
+  .sidebar-brand h4 { color:var(--text); margin:0; font-weight:700; font-size:22px; letter-spacing:-0.02em; }
+  .sidebar-brand small { color:var(--text-muted); font-size:12px; font-weight:500; }
+  .theme-toggle { margin:14px 12px 6px; padding:9px 14px; background:var(--bg-hover); border:1px solid var(--border); border-radius:10px; cursor:pointer; font-size:13px; color:var(--text-sub); display:flex; align-items:center; justify-content:space-between; gap:8px; transition:all .2s var(--transition); }
+  .theme-toggle:hover { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
+
+  /* === Main === */
+  .main-content { padding:28px 36px; }
+  .page-title { font-size:28px; font-weight:700; margin-bottom:22px; color:var(--text); letter-spacing:-0.025em; }
+
+  /* === Cards === */
+  .card { background:var(--bg-card); backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur); color:var(--text); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); transition:all .25s var(--transition); }
+  .card.p-3, .card.p-4 { background:var(--bg-card-solid); }
+
+  /* === Buttons === */
+  .btn { border-radius:10px; font-size:14px; font-weight:500; padding:7px 16px; transition:all .15s var(--transition); letter-spacing:-0.01em; }
+  .btn-primary { background:var(--accent); border-color:var(--accent); }
+  .btn-primary:hover { background:var(--accent-hover); border-color:var(--accent-hover); transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,113,227,0.25); }
+  .btn-outline-primary { color:var(--accent); border-color:var(--accent); }
+  .btn-outline-primary:hover { background:var(--accent); color:#fff; transform:translateY(-1px); }
+  .btn-success { background:var(--success); border-color:var(--success); }
+  .btn-outline-danger { color:var(--danger); border-color:var(--danger); }
+  .btn-outline-secondary { color:var(--text-sub); border-color:var(--border-strong); background:transparent; }
+  .btn-outline-secondary:hover { background:var(--bg-hover); color:var(--text); border-color:var(--border-strong); }
+  .btn-lg-icon { font-size:14px; padding:8px 18px; }
+  .btn-sm { padding:5px 12px; font-size:13px; border-radius:8px; }
+  .btn-link { color:var(--accent); text-decoration:none; font-weight:500; }
+
+  /* === Forms === */
+  .form-control, .form-select { background:var(--bg-input); color:var(--text); border-color:var(--border-strong); border-radius:10px; font-size:14px; padding:8px 12px; transition:border-color .15s var(--transition), box-shadow .15s var(--transition); }
+  .form-control:focus, .form-select:focus { background:var(--bg-input); color:var(--text); border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft); outline:none; }
+  .form-control::placeholder { color:var(--text-muted); }
+  .form-control-sm { padding:5px 10px; font-size:13px; border-radius:8px; }
+  .form-select-sm { padding:5px 28px 5px 10px; font-size:13px; border-radius:8px; }
+  .form-label { font-size:13px; font-weight:500; color:var(--text-sub); margin-bottom:5px; }
+
+  /* === Tables === */
+  .table { color:var(--text); font-size:14px; }
+  .table th { background:transparent; font-weight:600; color:var(--text-muted); font-size:12px; text-transform:uppercase; letter-spacing:0.04em; border-color:var(--border); padding:10px 12px; }
+  .table td { border-color:var(--border); padding:12px; }
+  .table-striped > tbody > tr:nth-of-type(odd) > * { background:var(--bg-stripe); color:var(--text); }
+  .table-hover > tbody > tr:hover > * { background:var(--bg-hover); color:var(--text); }
+
+  /* === Modals === */
+  .modal-content { background:var(--bg-card-solid); color:var(--text); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); }
+  .modal-header { border-color:var(--border); padding:18px 22px; }
+  .modal-header h5 { font-weight:600; letter-spacing:-0.01em; }
+  .modal-footer { border-color:var(--border); padding:14px 22px; }
+  .modal-body { padding:20px 22px; }
+  .btn-close { filter:var(--btn-close-filter, none); opacity:0.6; }
+  [data-theme="dark"] .btn-close { filter:invert(1) grayscale(1); }
+  hr { border-color:var(--border); opacity:1; }
+
+  /* === Stat cards (homepage) === */
+  .stat-card { text-align:center; padding:24px 20px; background:var(--bg-card-solid); border:1px solid var(--border); }
+  .stat-card .stat-num { font-size:36px; font-weight:700; color:var(--text); letter-spacing:-0.03em; line-height:1; }
+  .stat-card .stat-label { color:var(--text-muted); font-size:13px; margin-top:8px; font-weight:500; letter-spacing:0.01em; }
+
+  /* === Pages === */
+  .page { display:none; }
+  .page.active { display:block; }
+
+  /* === Attendance === */
+  .attendance-cell { cursor:pointer; text-align:center; min-width:64px; font-weight:500; }
+  .att-出勤 { background:var(--att-attend); color:#0a5028; }
+  .att-缺勤 { background:var(--att-absent); color:#7f1d1d; }
+  .att-请假 { background:var(--att-leave); color:#78350f; }
+  .att-迟到 { background:var(--att-late); color:#1e3a8a; }
+  [data-theme="dark"] .att-出勤 { color:#86efac; }
+  [data-theme="dark"] .att-缺勤 { color:#fca5a5; }
+  [data-theme="dark"] .att-请假 { color:#fcd34d; }
+  [data-theme="dark"] .att-迟到 { color:#93c5fd; }
+
+  /* === Text utilities === */
+  .text-muted, small.text-muted { color:var(--text-muted) !important; }
+  .form-control-plaintext { color:var(--text); }
+
+  /* === AI 输出 === */
+  .ai-output { background:var(--bg-stripe); border-radius:var(--radius); padding:16px; min-height:120px; white-space:pre-wrap; font-size:14px; line-height:1.7; color:var(--text); border:1px solid var(--border); }
+  .ai-status { font-size:12px; color:var(--text-muted); }
+  .ai-status.ok { color:var(--success); }
+  .ai-status.err { color:var(--danger); }
+
+  /* === Dashboard action cards === */
+  .action-card { cursor:pointer; transition:all .25s var(--transition); border:1px solid var(--border); background:var(--bg-card-solid); }
+  .action-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-hover); border-color:var(--accent); }
+  .action-card .card-body { padding:20px; }
+  .action-card .action-icon { font-size:30px; margin-bottom:10px; line-height:1; }
+  .action-card .action-title { margin-bottom:6px; font-weight:600; color:var(--text); font-size:15px; letter-spacing:-0.01em; }
+  .action-card .action-desc { font-size:13px; color:var(--text-muted); margin-bottom:12px; min-height:36px; line-height:1.5; }
+  .action-card .action-arrow { font-size:13px; color:var(--accent); font-weight:500; }
+  .status-card { border:1px solid var(--border); background:var(--bg-card-solid); }
+  .status-card .card-body { padding:16px 18px; }
+  .status-dot { width:10px; height:10px; border-radius:50%; background:#adb5bd; flex-shrink:0; }
+  .status-dot.ok { background:var(--success); box-shadow:0 0 0 4px rgba(52,199,89,0.18); }
+  .status-dot.warn { background:var(--warning); }
+  .status-dot.err { background:var(--danger); }
+  .status-title { font-size:14px; font-weight:600; color:var(--text); line-height:1.2; }
+  .status-sub { font-size:12px; color:var(--text-muted); line-height:1.4; margin-top:2px; }
+
+  /* === AI 命令栏（毛玻璃） === */
+  .ai-bar { position:sticky; top:0; z-index:50; background:var(--bg-aibar); backdrop-filter:var(--blur); -webkit-backdrop-filter:var(--blur); border:1px solid var(--border); border-radius:14px; padding:8px 12px; margin-bottom:18px; box-shadow:var(--shadow-sm); }
+  .ai-bar-input-wrap { display:flex; align-items:center; gap:8px; }
+  .ai-bar-icon { font-size:18px; flex-shrink:0; opacity:0.85; }
+  #ai-bar-input { flex-grow:1; border:none; padding:8px 4px; font-size:14px; background:transparent; color:var(--text); outline:none; }
+  #ai-bar-input::placeholder { color:var(--text-muted); }
+  .ai-bar-send { flex-shrink:0; min-width:38px; height:32px; padding:0 12px; font-size:13px; line-height:1; border-radius:8px; }
+  .ai-bar-output { position:absolute; left:12px; right:12px; top:calc(100% + 6px); background:var(--bg-card-solid); border:1px solid var(--border); border-radius:var(--radius); padding:14px 18px; max-height:320px; overflow-y:auto; box-shadow:var(--shadow-lg); z-index:100; }
+  .ai-bar-output-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:12px; color:var(--text-muted); font-weight:500; }
+  .ai-bar-output-body { font-size:14px; line-height:1.65; white-space:pre-wrap; color:var(--text); }
+  .ai-bar-close-btn { padding:0 8px; font-size:14px; color:var(--text-muted) !important; text-decoration:none; }
+  .ai-bar-close-btn:hover { color:var(--text) !important; }
+
+  /* === Section subheadings (homepage) === */
+  h6.text-muted { font-size:12px !important; font-weight:600 !important; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted) !important; margin-top:24px !important; }
+
+  /* === Scrollbar (subtle) === */
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--border-strong); border-radius:5px; }
+  ::-webkit-scrollbar-thumb:hover { background:var(--text-muted); }
+
+  @media (max-width: 768px) {
+    .sidebar { min-height:auto; }
+    .main-content { padding:18px; }
+    .page-title { font-size:24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container-fluid">
+  <div class="row">
+    <!-- 左侧导航 -->
+    <nav class="col-md-2 sidebar">
+      <div class="sidebar-brand">
+        <h4>📚 ClassWise</h4>
+        <small>v2.0 · 教务助手</small>
+      </div>
+      <button class="theme-toggle" onclick="toggleTheme()"><span id="theme-icon">🌙</span><span id="theme-label">深色模式</span></button>
+      <ul class="nav flex-column" id="mainNav">
+        <li class="nav-item"><a class="nav-link active" data-page="dashboard">🏠 首页概览</a></li>
+        <li class="nav-item"><a class="nav-link" data-page="students">👥 学生管理</a></li>
+        <li class="nav-item"><a class="nav-link" data-page="grades">📊 成绩管理</a></li>
+        <li class="nav-item"><a class="nav-link" data-page="attendance">📅 考勤记录</a></li>
+        <li class="nav-item"><a class="nav-link" data-page="reports">📤 报表导出</a></li>
+        <li class="nav-item"><a class="nav-link" data-page="ai">🤖 AI 助手</a></li>
+        <li class="nav-item"><a class="nav-link" data-page="ocr">📷 OCR 录入</a></li>
+        <li class="nav-item"><a class="nav-link" data-page="settings">⚙️ 数据与设置</a></li>
+      </ul>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="col-md-10 main-content">
+
+      <!-- 全局 AI 命令栏（紧凑型） -->
+      <div class="ai-bar">
+        <div class="ai-bar-input-wrap">
+          <span class="ai-bar-icon">🤖</span>
+          <input type="text" id="ai-bar-input" placeholder="问 AI 任何事... 例：谁数学最高？/ 给张明写评语" autocomplete="off">
+          <button class="btn btn-sm btn-primary ai-bar-send" onclick="aiBarSubmit()" title="发送 (Enter)">
+            <span id="ai-bar-send-text">▶</span>
+            <span id="ai-bar-send-loading" style="display:none;">⏳</span>
+          </button>
+        </div>
+        <div class="ai-bar-output" id="ai-bar-output" style="display:none;">
+          <div class="ai-bar-output-head">
+            <span id="ai-bar-output-status">AI 回答：</span>
+            <button class="btn btn-sm btn-link ai-bar-close-btn" onclick="aiBarClose()" title="关闭">✕</button>
+          </div>
+          <div class="ai-bar-output-body" id="ai-bar-output-body"></div>
+        </div>
+      </div>
+
+      <!-- 首页 -->
+      <section class="page active" id="page-dashboard">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2 class="page-title mb-0">首页概览</h2>
+          <small class="text-muted" id="dash-greeting">—</small>
+        </div>
+
+        <!-- 第一区：4 项核心指标 -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-3"><div class="card stat-card h-100"><div class="stat-num" id="stat-students">0</div><div class="stat-label">学生总数</div></div></div>
+          <div class="col-md-3"><div class="card stat-card h-100"><div class="stat-num" id="stat-classes">0</div><div class="stat-label">班级数</div></div></div>
+          <div class="col-md-3"><div class="card stat-card h-100"><div class="stat-num" id="stat-grades">0</div><div class="stat-label">成绩条数</div></div></div>
+          <div class="col-md-3"><div class="card stat-card h-100"><div class="stat-num" id="stat-att">0</div><div class="stat-label">考勤记录</div></div></div>
+        </div>
+
+        <!-- 第二区：快捷功能 -->
+        <h6 class="text-muted mb-2 mt-2">🚀 快捷功能</h6>
+        <div class="row g-3 mb-4">
+          <div class="col-md-4 col-sm-6">
+            <div class="card action-card h-100" onclick="goPage(\'students\')">
+              <div class="card-body">
+                <div class="action-icon">👥</div>
+                <h6 class="action-title">学生管理</h6>
+                <p class="action-desc">添加学生、按班级筛选、批量编辑</p>
+                <span class="action-arrow">进入 →</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-6">
+            <div class="card action-card h-100" onclick="goPage(\'grades\')">
+              <div class="card-body">
+                <div class="action-icon">📊</div>
+                <h6 class="action-title">成绩管理</h6>
+                <p class="action-desc">按学期录入，自动算排名总分</p>
+                <span class="action-arrow">进入 →</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-6">
+            <div class="card action-card h-100" onclick="goPage(\'attendance\')">
+              <div class="card-body">
+                <div class="action-icon">📅</div>
+                <h6 class="action-title">考勤记录</h6>
+                <p class="action-desc">点按钮循环：出勤→缺勤→请假→迟到</p>
+                <span class="action-arrow">进入 →</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-6">
+            <div class="card action-card h-100" onclick="goPage(\'ai\')">
+              <div class="card-body">
+                <div class="action-icon">🤖</div>
+                <h6 class="action-title">AI 助手</h6>
+                <p class="action-desc">评语、班级总结、自然语言问答</p>
+                <span class="action-arrow">进入 →</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-6">
+            <div class="card action-card h-100" onclick="goPage(\'ocr\')">
+              <div class="card-body">
+                <div class="action-icon">📷</div>
+                <h6 class="action-title">OCR 录入</h6>
+                <p class="action-desc">拍照识别名单、成绩单</p>
+                <span class="action-arrow">进入 →</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4 col-sm-6">
+            <div class="card action-card h-100" onclick="goPage(\'reports\')">
+              <div class="card-body">
+                <div class="action-icon">📤</div>
+                <h6 class="action-title">报表导出</h6>
+                <p class="action-desc">一键导出三张 Excel 报表</p>
+                <span class="action-arrow">进入 →</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 第三区：系统状态 -->
+        <h6 class="text-muted mb-2 mt-2">🔧 系统状态</h6>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="card status-card h-100">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="status-dot" id="dash-dot-ollama"></div>
+                  <div class="ms-2 flex-grow-1">
+                    <div class="status-title">AI 引擎 (Ollama)</div>
+                    <div class="status-sub" id="dash-ollama-info">检测中...</div>
+                  </div>
+                  <button class="btn btn-sm btn-outline-primary" onclick="goPage(\'ai\')">配置</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card status-card h-100">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="status-dot" id="dash-dot-ocr"></div>
+                  <div class="ms-2 flex-grow-1">
+                    <div class="status-title">OCR 引擎</div>
+                    <div class="status-sub" id="dash-ocr-info">未加载（按需启动）</div>
+                  </div>
+                  <button class="btn btn-sm btn-outline-primary" onclick="goPage(\'ocr\')">使用</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card status-card h-100">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="status-dot" id="dash-dot-backup"></div>
+                  <div class="ms-2 flex-grow-1">
+                    <div class="status-title">数据备份</div>
+                    <div class="status-sub" id="dash-backup-info">建议每周导出一次</div>
+                  </div>
+                  <button class="btn btn-sm btn-outline-primary" onclick="goPage(\'settings\')">备份</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- 学生管理 -->
+      <section class="page" id="page-students">
+        <h2 class="page-title">学生管理</h2>
+        <div class="card p-3 mb-3">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+              <label class="form-label">班级筛选</label>
+              <select id="filter-class" class="form-select" onchange="renderStudents()">
+                <option value="">全部班级</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">姓名搜索</label>
+              <input id="filter-name" class="form-control" placeholder="输入姓名关键字" oninput="renderStudents()">
+            </div>
+            <div class="col-md-5 text-end">
+              <button class="btn btn-primary btn-lg-icon" onclick="openStudentModal()">➕ 添加学生</button>
+              <button class="btn btn-outline-primary btn-lg-icon" onclick="openImportModal('students')">📥 导入表格</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr><th>学号</th><th>姓名</th><th>班级</th><th>性别</th><th>联系方式</th><th style="width:160px">操作</th></tr>
+            </thead>
+            <tbody id="students-tbody"><tr><td colspan="6" class="text-center text-muted py-4">暂无学生，点击「添加学生」开始录入</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 成绩管理 -->
+      <section class="page" id="page-grades">
+        <h2 class="page-title">成绩管理</h2>
+        <div class="card p-3 mb-3">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+              <label class="form-label">学期</label>
+              <select id="grade-term" class="form-select" onchange="renderGrades()">
+                <option value="2025-2026上">2025-2026 上学期</option>
+                <option value="2025-2026下">2025-2026 下学期</option>
+                <option value="2026-2027上">2026-2027 上学期</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">考试类型</label>
+              <select id="grade-exam" class="form-select" onchange="renderGrades()">
+                <option value="期中">期中考试</option>
+                <option value="期末">期末考试</option>
+                <option value="月考">月考</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">班级</label>
+              <select id="grade-class" class="form-select" onchange="renderGrades()">
+                <option value="">全部班级</option>
+              </select>
+            </div>
+            <div class="col-md-3 text-end">
+              <button class="btn btn-primary btn-lg-icon" onclick="openGradeModal()">➕ 录入成绩</button>
+              <button class="btn btn-outline-primary btn-lg-icon" onclick="openImportModal('grades')">📥 导入表格</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0" id="grades-table">
+              <thead id="grades-thead"></thead>
+              <tbody id="grades-tbody"><tr><td colspan="3" class="text-center text-muted py-4">暂无成绩</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 考勤记录 -->
+      <section class="page" id="page-attendance">
+        <h2 class="page-title">考勤记录</h2>
+        <div class="card p-3 mb-3">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+              <label class="form-label">日期</label>
+              <input type="date" id="att-date" class="form-control" onchange="renderAttendance()">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">班级</label>
+              <select id="att-class" class="form-select" onchange="renderAttendance()">
+                <option value="">全部班级</option>
+              </select>
+            </div>
+            <div class="col-md-6 text-muted">
+              <small>点击下方状态按钮可循环切换：出勤 → 缺勤 → 请假 → 迟到</small><br><button class="btn btn-outline-primary btn-sm mt-2" onclick="openImportModal('attendance')">📥 导入考勤表格</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <table class="table table-hover mb-0">
+            <thead><tr><th>学号</th><th>姓名</th><th>班级</th><th>状态</th><th>出勤率</th></tr></thead>
+            <tbody id="att-tbody"><tr><td colspan="5" class="text-center text-muted py-4">请先选择日期</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 报表导出 -->
+      <section class="page" id="page-reports">
+        <h2 class="page-title">报表导出</h2>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="card p-4 text-center">
+              <h5>👥 学生名单</h5>
+              <p class="text-muted small">导出全部学生基本信息</p>
+              <button class="btn btn-primary" onclick="exportStudents()">导出 Excel</button>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card p-4 text-center">
+              <h5>📊 成绩汇总表</h5>
+              <p class="text-muted small">按当前学期+考试类型导出，含总分排名</p>
+              <button class="btn btn-primary" onclick="exportGrades()">导出 Excel</button>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card p-4 text-center">
+              <h5>📅 考勤统计表</h5>
+              <p class="text-muted small">按日期范围统计每位学生出勤情况</p>
+              <button class="btn btn-primary" onclick="exportAttendance()">导出 Excel</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI 助手 -->
+      <section class="page" id="page-ai">
+        <h2 class="page-title">AI 助手</h2>
+        <div class="card p-3 mb-3">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-6">
+              <label class="form-label">选择 AI 模型档次</label>
+              <select id="ai-model" class="form-select">
+                <option value="qwen2.5:0.5b">入门档：Qwen2.5 0.5B（4GB 内存可跑，速度快）</option>
+                <option value="qwen2.5:7b" selected>标准档：Qwen2.5 7B（8GB 内存推荐，中文最佳）</option>
+                <option value="gemma4:e4b">边缘档：Gemma 4 E4B（谷歌2026最新，多模态）</option>
+                <option value="gemma4">旗舰档：Gemma 4 26B MoE（高配电脑，最强能力）</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Ollama 地址</label>
+              <input id="ai-host" class="form-control" value="http://localhost:11434">
+            </div>
+            <div class="col-md-2">
+              <button class="btn btn-outline-primary w-100" onclick="testOllama()">测试连接</button>
+            </div>
+          </div>
+          <div class="ai-status mt-2" id="ai-status">未连接 · 请先安装 Ollama 并下载对应模型</div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="card p-3">
+              <h6>✍️ 一键生成学生评语</h6>
+              <div class="mb-2">
+                <select id="ai-stu-select" class="form-select"></select>
+              </div>
+              <button class="btn btn-primary btn-sm mb-2" onclick="aiGenComment()">生成评语</button>
+              <div class="ai-output" id="ai-out-comment">评语将在这里显示...</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card p-3">
+              <h6>📈 成绩分析报告</h6>
+              <div class="mb-2">
+                <select id="ai-cls-select" class="form-select"></select>
+              </div>
+              <button class="btn btn-primary btn-sm mb-2" onclick="aiAnalyze()">分析成绩</button>
+              <div class="ai-output" id="ai-out-analyze">分析将在这里显示...</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card p-3">
+              <h6>📝 期末班级总结</h6>
+              <div class="mb-2">
+                <select id="ai-summary-cls" class="form-select"></select>
+              </div>
+              <button class="btn btn-primary btn-sm mb-2" onclick="aiSummary()">生成总结</button>
+              <div class="ai-output" id="ai-out-summary">总结将在这里显示...</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card p-3">
+              <h6>💬 自然语言问答</h6>
+              <div class="mb-2">
+                <input id="ai-question" class="form-control" placeholder='例如："谁的数学最差？"'>
+              </div>
+              <button class="btn btn-primary btn-sm mb-2" onclick="aiAsk()">提问</button>
+              <div class="ai-output" id="ai-out-ask">回答将在这里显示...</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-3 mt-3">
+          <h6>📖 Ollama 安装速查（首次使用必看）</h6>
+          <ol class="text-muted small mb-0">
+            <li>访问 <a href="https://ollama.com/download" target="_blank">ollama.com/download</a>，下载对应系统的安装包并安装</li>
+            <li>打开命令行（Win 按 Win+R 输入 cmd），运行：<code>ollama pull qwen2.5:7b</code>（或选择其它档次的模型名）</li>
+            <li>等待下载完成后，运行：<code>ollama serve</code>（一般装好后已自动启动）</li>
+            <li>回到本页点击「测试连接」即可</li>
+          </ol>
+        </div>
+      </section>
+      <!-- OCR 录入 -->
+      <section class="page" id="page-ocr">
+        <h2 class="page-title">OCR 录入</h2>
+        <div class="card p-3 mb-3">
+          <div class="row g-2 align-items-center">
+            <div class="col-md-7">
+              <label class="form-label">上传图片（学生名单 / 成绩单 / 考勤表照片）</label>
+              <input type="file" id="ocr-file" class="form-control" accept="image/*">
+            </div>
+            <div class="col-md-5">
+              <label class="form-label">当前识别引擎</label>
+              <div id="ocr-engine-info" class="form-control-plaintext fw-bold text-primary">— 请先在 AI 助手页选模型 —</div>
+            </div>
+          </div>
+          <div class="ai-status mt-2" id="ocr-status">就绪</div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <div class="card p-2">
+              <h6 class="px-2 pt-2">原图预览</h6>
+              <div style="max-height:400px;overflow:auto;text-align:center;background:#f8f9fa;border-radius:6px;">
+                <img id="ocr-preview" style="max-width:100%;display:none;">
+                <div id="ocr-preview-empty" class="text-muted py-5">尚未上传图片</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card p-2">
+              <h6 class="px-2 pt-2">识别结果</h6>
+              <textarea id="ocr-result" class="form-control" style="height:380px;font-size:14px;" placeholder="识别出的文字将显示在这里...&#10;可以手动修改后再交给 AI 处理。"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-3 mb-3">
+          <h6>🎯 一键识别</h6>
+          <div class="d-flex gap-2 mb-2 flex-wrap">
+            <button class="btn btn-primary" onclick="ocrRecognize()">📷 识别图片为文字</button>
+            <button class="btn btn-outline-secondary" onclick="document.getElementById('ocr-result').value=''">清空结果</button>
+          </div>
+          <small class="text-muted">PaddleOCR 路线首次识别较慢（需要加载模型，约 16MB），后续秒级响应。Gemma 4 路线直接由 AI 看图。</small>
+        </div>
+
+        <div class="card p-3">
+          <h6>🤖 把识别结果交给 AI 处理</h6>
+          <div class="row g-2">
+            <div class="col-md-4">
+              <button class="btn btn-success w-100" onclick="ocrToStudents()">📋 解析为学生名单</button>
+              <small class="text-muted d-block mt-1">AI 自动提取学号/姓名/班级并批量导入</small>
+            </div>
+            <div class="col-md-4">
+              <button class="btn btn-success w-100" onclick="ocrToGrades()">📊 解析为成绩录入</button>
+              <small class="text-muted d-block mt-1">AI 识别"姓名 + 科目分数"对应关系</small>
+            </div>
+            <div class="col-md-4">
+              <button class="btn btn-success w-100" onclick="ocrToAI()">💬 让 AI 自由处理</button>
+              <small class="text-muted d-block mt-1">把识别结果发给 AI，自定义问题</small>
+            </div>
+          </div>
+          <div class="ai-output mt-3" id="ocr-ai-output" style="display:none;"></div>
+        </div>
+
+        <div class="card p-3 mt-3">
+          <h6>📖 OCR 工作原理</h6>
+          <p class="text-muted small mb-2">系统会根据你在 AI 助手页选的模型，自动选择最优 OCR 路径：</p>
+          <ul class="text-muted small mb-0">
+            <li><b>选了 Gemma 4（视觉多模态）</b>：图片直接发给 AI，由 AI 自己看图理解，效果最好</li>
+            <li><b>选了 Qwen 2.5（纯文本）</b>：先用 PaddleOCR 把图变文字，再交给 AI 处理</li>
+            <li>识别结果可以在中间文本框里手动修改，让 AI 处理你已校对的内容</li>
+          </ul>
+        </div>
+      </section>
+
+
+
+      <!-- 数据与设置 -->
+      <section class="page" id="page-settings">
+        <h2 class="page-title">数据与设置</h2>
+        <div class="card p-4 mb-3">
+          <h5>💾 数据备份</h5>
+          <p class="text-muted">建议定期导出 JSON 备份，避免浏览器清除数据后丢失。</p>
+          <button class="btn btn-success me-2" onclick="exportJSON()">📥 导出全部数据 (JSON)</button>
+          <label class="btn btn-outline-primary mb-0">
+            📤 从 JSON 恢复
+            <input type="file" id="json-import" accept=".json" hidden onchange="importJSON(event)">
+          </label>
+        </div>
+        <div class="card p-4 mb-3">
+          <h5>🧪 示例数据</h5>
+          <p class="text-muted">第一次使用？可以一键载入示例数据熟悉系统。</p>
+          <button class="btn btn-outline-primary" onclick="loadDemo()">载入示例数据</button>
+        </div>
+        <div class="card p-4">
+          <h5 class="text-danger">⚠️ 危险操作</h5>
+          <p class="text-muted">清空所有数据，操作不可恢复。建议先导出备份。</p>
+          <button class="btn btn-outline-danger" onclick="clearAll()">清空所有数据</button>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- 学生编辑弹窗 -->
+<div class="modal fade" id="studentModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title" id="stuModalTitle">添加学生</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <input type="hidden" id="stu-id">
+        <div class="mb-2"><label class="form-label">学号</label><input class="form-control" id="stu-no" required></div>
+        <div class="mb-2"><label class="form-label">姓名</label><input class="form-control" id="stu-name" required></div>
+        <div class="mb-2"><label class="form-label">班级</label><input class="form-control" id="stu-class" placeholder="例如：高一(3)班" required></div>
+        <div class="mb-2"><label class="form-label">性别</label><select class="form-select" id="stu-gender"><option>男</option><option>女</option></select></div>
+        <div class="mb-2"><label class="form-label">联系方式</label><input class="form-control" id="stu-contact" placeholder="家长电话"></div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button class="btn btn-primary" onclick="saveStudent()">保存</button></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- 导入表格弹窗（共用） -->
+<div class="modal fade" id="importModal" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="importModalTitle">导入表格</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-2 align-items-end mb-3">
+          <div class="col-md-7">
+            <label class="form-label fw-bold">① 选择文件</label>
+            <input type="file" id="imp-file" class="form-control" accept=".xlsx,.xls,.csv,.tsv,.ods,.xlsm">
+            <small class="text-muted">支持 Excel (.xlsx/.xls/.xlsm)、CSV (.csv)、TSV (.tsv)、OpenDocument (.ods)</small>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-bold">② 工作表</label>
+            <select id="imp-sheet" class="form-select" onchange="rebuildImportPreview()"></select>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-bold">表头行 <small class="text-muted fw-normal">(自动)</small></label>
+            <select id="imp-header-row" class="form-select" onchange="this.dataset.userset='1'; rebuildImportPreview()"></select>
+          </div>
+        </div>
+
+        <div id="imp-mapping-area" style="display:none;">
+          <hr>
+          <label class="form-label fw-bold">③ 字段映射 <small class="text-muted fw-normal">(系统已自动尝试匹配，可手动调整)</small></label>
+          <div id="imp-mapping-rows" class="row g-2 mb-3"></div>
+
+          <label class="form-label fw-bold">④ 预览（前 5 行）</label>
+          <div class="table-responsive" style="max-height:280px;overflow:auto;border:1px solid #e3e6ea;border-radius:6px;">
+            <table class="table table-sm table-striped mb-0" id="imp-preview-table"></table>
+          </div>
+
+          <div class="mt-3" id="imp-summary"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button class="btn btn-primary" id="imp-confirm-btn" onclick="confirmImport()" disabled>确认导入</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 成绩录入弹窗 -->
+<div class="modal fade" id="gradeModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">录入成绩</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <div class="row g-2 mb-3">
+          <div class="col-md-4"><label class="form-label">学期</label><div id="gm-term" class="form-control-plaintext fw-bold"></div></div>
+          <div class="col-md-4"><label class="form-label">考试</label><div id="gm-exam" class="form-control-plaintext fw-bold"></div></div>
+          <div class="col-md-4"><label class="form-label">班级</label>
+            <select class="form-select" id="gm-class" onchange="renderGradeModalRows()"></select>
+          </div>
+        </div>
+        <div class="mb-2"><label class="form-label">本次录入科目（用逗号分隔，例：语文,数学,英语）</label>
+          <input class="form-control" id="gm-subjects" value="语文,数学,英语,物理,化学" onchange="renderGradeModalRows()">
+        </div>
+        <div class="table-responsive">
+          <table class="table table-bordered">
+            <thead id="gm-thead"></thead>
+            <tbody id="gm-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button class="btn btn-primary" onclick="saveGrades()">保存全部</button></div>
+    </div>
+  </div>
+</div>
+
+<script src="./libs/bootstrap.bundle.min.js"></script>
+<script>
+/* ==================== 数据层 ==================== */
+const STORAGE_KEY = 'jwxt_data_v1';
+let DB = { students:[], grades:[], attendance:[] };
+
+function loadDB() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) DB = JSON.parse(raw);
+  } catch(e) { console.error(e); }
+  if (!DB.students) DB.students = [];
+  if (!DB.grades) DB.grades = [];
+  if (!DB.attendance) DB.attendance = [];
+}
+function saveDB() { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+/* ==================== 导航 ==================== */
+document.querySelectorAll('#mainNav .nav-link').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    document.querySelectorAll('#mainNav .nav-link').forEach(x=>x.classList.remove('active'));
+    a.classList.add('active');
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+a.dataset.page).classList.add('active');
+    if (a.dataset.page==='dashboard') renderDashboard();
+    if (a.dataset.page==='students') { refreshClassOptions(); renderStudents(); }
+    if (a.dataset.page==='grades') { refreshClassOptions(); renderGrades(); }
+    if (a.dataset.page==='attendance') { refreshClassOptions(); renderAttendance(); }
+    if (a.dataset.page==='ai') { refreshAIOptions(); }
+    if (a.dataset.page==='ocr') { updateOcrEngineHint(); }
+  });
+});
+
+/* ==================== 首页 ==================== */
+function renderDashboard() {
+  document.getElementById('stat-students').textContent = DB.students.length;
+  document.getElementById('stat-classes').textContent = new Set(DB.students.map(s=>s.class)).size;
+  document.getElementById('stat-grades').textContent = DB.grades.length;
+  document.getElementById('stat-att').textContent = DB.attendance.length;
+}
+
+/* ==================== 班级下拉同步 ==================== */
+function refreshClassOptions() {
+  const classes = [...new Set(DB.students.map(s=>s.class).filter(Boolean))].sort();
+  ['filter-class','grade-class','att-class'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">全部班级</option>' + classes.map(c=>`<option value="${c}">${c}</option>`).join('');
+    sel.value = cur;
+  });
+  const gm = document.getElementById('gm-class');
+  if (gm) gm.innerHTML = classes.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+/* ==================== 学生模块 ==================== */
+function renderStudents() {
+  const cls = document.getElementById('filter-class').value;
+  const kw = (document.getElementById('filter-name').value || '').trim();
+  const tbody = document.getElementById('students-tbody');
+  let list = DB.students.filter(s => (!cls || s.class===cls) && (!kw || s.name.includes(kw)));
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">无匹配学生</td></tr>'; return; }
+  tbody.innerHTML = list.map(s => `
+    <tr>
+      <td>${s.no}</td><td>${s.name}</td><td>${s.class}</td><td>${s.gender}</td><td>${s.contact||'-'}</td>
+      <td>
+        <button class="btn btn-sm btn-outline-primary" onclick="editStudent('${s.id}')">编辑</button>
+        <button class="btn btn-sm btn-outline-danger" onclick="delStudent('${s.id}')">删除</button>
+      </td>
+    </tr>`).join('');
+}
+function openStudentModal() {
+  document.getElementById('stuModalTitle').textContent = '添加学生';
+  ['stu-id','stu-no','stu-name','stu-class','stu-contact'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('stu-gender').value = '男';
+  new bootstrap.Modal('#studentModal').show();
+}
+function editStudent(id) {
+  const s = DB.students.find(x=>x.id===id); if (!s) return;
+  document.getElementById('stuModalTitle').textContent = '编辑学生';
+  document.getElementById('stu-id').value = s.id;
+  document.getElementById('stu-no').value = s.no;
+  document.getElementById('stu-name').value = s.name;
+  document.getElementById('stu-class').value = s.class;
+  document.getElementById('stu-gender').value = s.gender;
+  document.getElementById('stu-contact').value = s.contact || '';
+  new bootstrap.Modal('#studentModal').show();
+}
+function saveStudent() {
+  const id = document.getElementById('stu-id').value;
+  const data = {
+    no: document.getElementById('stu-no').value.trim(),
+    name: document.getElementById('stu-name').value.trim(),
+    class: document.getElementById('stu-class').value.trim(),
+    gender: document.getElementById('stu-gender').value,
+    contact: document.getElementById('stu-contact').value.trim()
+  };
+  if (!data.no || !data.name || !data.class) { alert('学号、姓名、班级为必填项'); return; }
+  if (id) Object.assign(DB.students.find(x=>x.id===id), data);
+  else DB.students.push({ id: uid(), ...data });
+  saveDB();
+  bootstrap.Modal.getInstance(document.getElementById('studentModal')).hide();
+  refreshClassOptions(); renderStudents();
+}
+function delStudent(id) {
+  if (!confirm('确认删除该学生？相关成绩和考勤也会保留，但不再关联。')) return;
+  DB.students = DB.students.filter(s=>s.id!==id);
+  saveDB(); renderStudents();
+}
+
+/* ==================== 成绩模块 ==================== */
+function renderGrades() {
+  const term = document.getElementById('grade-term').value;
+  const exam = document.getElementById('grade-exam').value;
+  const cls = document.getElementById('grade-class').value;
+  const students = DB.students.filter(s => !cls || s.class===cls);
+  const relevantGrades = DB.grades.filter(g => g.term===term && g.examType===exam);
+  const subjects = [...new Set(relevantGrades.map(g=>g.subject))].sort();
+
+  const thead = document.getElementById('grades-thead');
+  const tbody = document.getElementById('grades-tbody');
+  if (!students.length) { thead.innerHTML=''; tbody.innerHTML = '<tr><td class="text-center text-muted py-4">请先在「学生管理」录入学生</td></tr>'; return; }
+  if (!subjects.length) { thead.innerHTML=''; tbody.innerHTML = '<tr><td class="text-center text-muted py-4">本学期本考试暂无成绩，点击「录入成绩」开始</td></tr>'; return; }
+
+  thead.innerHTML = `<tr><th>学号</th><th>姓名</th><th>班级</th>${subjects.map(s=>`<th>${s}</th>`).join('')}<th>总分</th><th>平均</th><th>班排名</th></tr>`;
+  // 计算每个学生总分（用于排名）
+  const rows = students.map(s => {
+    const scores = subjects.map(sub => {
+      const g = relevantGrades.find(x=>x.studentId===s.id && x.subject===sub);
+      return g ? Number(g.score) : null;
+    });
+    const valid = scores.filter(x=>x!==null);
+    const total = valid.reduce((a,b)=>a+b,0);
+    const avg = valid.length ? (total/valid.length).toFixed(1) : '-';
+    return { s, scores, total: valid.length?total:null, avg };
+  });
+  // 班内排名
+  const classRanks = {};
+  Object.entries(rows.reduce((acc,r)=>{ (acc[r.s.class] ||= []).push(r); return acc; }, {})).forEach(([cn, arr])=>{
+    arr.filter(r=>r.total!==null).sort((a,b)=>b.total-a.total).forEach((r,i)=>{ classRanks[r.s.id] = i+1; });
+  });
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.s.no}</td><td>${r.s.name}</td><td>${r.s.class}</td>
+      ${r.scores.map(x=>`<td>${x===null?'-':x}</td>`).join('')}
+      <td><b>${r.total===null?'-':r.total}</b></td><td>${r.avg}</td><td>${classRanks[r.s.id]||'-'}</td>
+    </tr>`).join('');
+}
+function openGradeModal() {
+  if (!DB.students.length) { alert('请先在「学生管理」录入学生'); return; }
+  document.getElementById('gm-term').textContent = document.getElementById('grade-term').value;
+  document.getElementById('gm-exam').textContent = document.getElementById('grade-exam').value;
+  refreshClassOptions();
+  renderGradeModalRows();
+  new bootstrap.Modal('#gradeModal').show();
+}
+function renderGradeModalRows() {
+  const cls = document.getElementById('gm-class').value;
+  const subjects = (document.getElementById('gm-subjects').value||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const students = DB.students.filter(s => s.class===cls);
+  const term = document.getElementById('gm-term').textContent;
+  const exam = document.getElementById('gm-exam').textContent;
+  document.getElementById('gm-thead').innerHTML = `<tr><th>学号</th><th>姓名</th>${subjects.map(s=>`<th>${s}</th>`).join('')}</tr>`;
+  document.getElementById('gm-tbody').innerHTML = students.map(s => `
+    <tr><td>${s.no}</td><td>${s.name}</td>
+      ${subjects.map(sub => {
+        const existing = DB.grades.find(g=>g.studentId===s.id && g.subject===sub && g.term===term && g.examType===exam);
+        return `<td><input type="number" min="0" max="150" class="form-control form-control-sm gm-score" data-sid="${s.id}" data-sub="${sub}" value="${existing?existing.score:''}"></td>`;
+      }).join('')}
+    </tr>`).join('');
+}
+function saveGrades() {
+  const term = document.getElementById('gm-term').textContent;
+  const exam = document.getElementById('gm-exam').textContent;
+  document.querySelectorAll('.gm-score').forEach(inp => {
+    const sid = inp.dataset.sid, sub = inp.dataset.sub, val = inp.value;
+    const idx = DB.grades.findIndex(g=>g.studentId===sid && g.subject===sub && g.term===term && g.examType===exam);
+    if (val==='' || val===null) { if (idx>=0) DB.grades.splice(idx,1); }
+    else {
+      const rec = { studentId:sid, subject:sub, score:Number(val), term, examType:exam };
+      if (idx>=0) DB.grades[idx] = rec; else DB.grades.push(rec);
+    }
+  });
+  saveDB();
+  bootstrap.Modal.getInstance(document.getElementById('gradeModal')).hide();
+  renderGrades();
+}
+
+/* ==================== 考勤模块 ==================== */
+const ATT_CYCLE = ['出勤','缺勤','请假','迟到'];
+function renderAttendance() {
+  const date = document.getElementById('att-date').value;
+  const cls = document.getElementById('att-class').value;
+  const tbody = document.getElementById('att-tbody');
+  if (!date) { tbody.innerHTML='<tr><td colspan="5" class="text-center text-muted py-4">请先选择日期</td></tr>'; return; }
+  const students = DB.students.filter(s => !cls || s.class===cls);
+  if (!students.length) { tbody.innerHTML='<tr><td colspan="5" class="text-center text-muted py-4">无学生</td></tr>'; return; }
+  tbody.innerHTML = students.map(s => {
+    const rec = DB.attendance.find(a=>a.studentId===s.id && a.date===date);
+    const status = rec ? rec.status : '出勤';
+    // 出勤率：该学生有记录的天数中，出勤+迟到 占比
+    const all = DB.attendance.filter(a=>a.studentId===s.id);
+    const presentLike = all.filter(a=>a.status==='出勤'||a.status==='迟到').length;
+    const rate = all.length ? Math.round(presentLike*100/all.length)+'%' : '-';
+    return `<tr><td>${s.no}</td><td>${s.name}</td><td>${s.class}</td>
+      <td><button class="btn btn-sm attendance-cell att-${status}" onclick="cycleAtt('${s.id}','${date}')">${status}</button></td>
+      <td>${rate}</td></tr>`;
+  }).join('');
+}
+function cycleAtt(sid, date) {
+  const idx = DB.attendance.findIndex(a=>a.studentId===sid && a.date===date);
+  const cur = idx>=0 ? DB.attendance[idx].status : '出勤';
+  const next = ATT_CYCLE[(ATT_CYCLE.indexOf(cur)+1) % ATT_CYCLE.length];
+  if (idx>=0) DB.attendance[idx].status = next;
+  else DB.attendance.push({ studentId:sid, date, status:next });
+  saveDB(); renderAttendance();
+}
+
+/* ==================== Excel 导出 ==================== */
+function exportStudents() {
+  if (!DB.students.length) { alert('无学生数据'); return; }
+  const ws = XLSX.utils.json_to_sheet(DB.students.map(s=>({学号:s.no,姓名:s.name,班级:s.class,性别:s.gender,联系方式:s.contact||''})));
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '学生名单');
+  XLSX.writeFile(wb, '学生名单.xlsx');
+}
+function exportGrades() {
+  const term = document.getElementById('grade-term').value;
+  const exam = document.getElementById('grade-exam').value;
+  const relevant = DB.grades.filter(g=>g.term===term && g.examType===exam);
+  if (!relevant.length) { alert('当前学期/考试无成绩'); return; }
+  const subjects = [...new Set(relevant.map(g=>g.subject))].sort();
+  const data = DB.students.map(s => {
+    const row = { 学号:s.no, 姓名:s.name, 班级:s.class };
+    let total=0, cnt=0;
+    subjects.forEach(sub => {
+      const g = relevant.find(x=>x.studentId===s.id && x.subject===sub);
+      row[sub] = g?g.score:'';
+      if (g) { total+=Number(g.score); cnt++; }
+    });
+    row.总分 = cnt?total:'';
+    row.平均 = cnt?(total/cnt).toFixed(1):'';
+    return row;
+  });
+  // 班内排名
+  const byClass = {};
+  data.forEach(r => { (byClass[r.班级] ||= []).push(r); });
+  Object.values(byClass).forEach(arr => {
+    arr.filter(r=>r.总分!=='').sort((a,b)=>b.总分-a.总分).forEach((r,i)=>r.班排名=i+1);
+  });
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '成绩汇总');
+  XLSX.writeFile(wb, `成绩汇总_${term}_${exam}.xlsx`);
+}
+function exportAttendance() {
+  if (!DB.attendance.length) { alert('无考勤数据'); return; }
+  // 透视：每个学生一行，包含 出勤天数/缺勤/请假/迟到/出勤率
+  const data = DB.students.map(s => {
+    const recs = DB.attendance.filter(a=>a.studentId===s.id);
+    const cnt = { 出勤:0, 缺勤:0, 请假:0, 迟到:0 };
+    recs.forEach(r => cnt[r.status]++);
+    const total = recs.length;
+    return {
+      学号:s.no, 姓名:s.name, 班级:s.class,
+      出勤天数:cnt.出勤, 缺勤天数:cnt.缺勤, 请假天数:cnt.请假, 迟到天数:cnt.迟到,
+      总记录天数:total,
+      出勤率: total ? ((cnt.出勤+cnt.迟到)*100/total).toFixed(1)+'%' : '-'
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '考勤统计');
+  XLSX.writeFile(wb, '考勤统计.xlsx');
+}
+
+/* ==================== JSON 备份 ==================== */
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(DB, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `教务数据_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+}
+function importJSON(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const obj = JSON.parse(r.result);
+      if (!obj.students || !obj.grades || !obj.attendance) throw new Error('格式错误');
+      if (!confirm('确认用导入数据覆盖当前数据？')) return;
+      DB = obj; saveDB(); renderDashboard();
+      alert('导入成功');
+    } catch(err) { alert('导入失败：'+err.message); }
+  };
+  r.readAsText(f);
+}
+function loadDemo() {
+  if (DB.students.length && !confirm('已有数据，确认覆盖为示例数据？')) return;
+  DB = {
+    students: [
+      {id:uid(), no:'001', name:'张明', class:'高一(3)班', gender:'男', contact:'13800138001'},
+      {id:uid(), no:'002', name:'李华', class:'高一(3)班', gender:'女', contact:'13800138002'},
+      {id:uid(), no:'003', name:'王芳', class:'高一(3)班', gender:'女', contact:'13800138003'},
+      {id:uid(), no:'004', name:'赵伟', class:'高一(3)班', gender:'男', contact:'13800138004'},
+      {id:uid(), no:'005', name:'陈静', class:'高一(4)班', gender:'女', contact:'13800138005'},
+      {id:uid(), no:'006', name:'刘强', class:'高一(4)班', gender:'男', contact:'13800138006'},
+    ],
+    grades: [], attendance: []
+  };
+  const subs = ['语文','数学','英语','物理','化学'];
+  DB.students.forEach(s => subs.forEach(sub => {
+    DB.grades.push({studentId:s.id, subject:sub, score:Math.floor(60+Math.random()*40), term:'2025-2026上', examType:'期中'});
+  }));
+  const today = new Date();
+  for (let d=0; d<5; d++) {
+    const date = new Date(today - d*86400000).toISOString().slice(0,10);
+    DB.students.forEach(s => {
+      const r = Math.random();
+      const status = r<0.85?'出勤':r<0.9?'缺勤':r<0.95?'请假':'迟到';
+      DB.attendance.push({studentId:s.id, date, status});
+    });
+  }
+  saveDB(); renderDashboard(); alert('示例数据已载入');
+}
+function clearAll() {
+  if (!confirm('确认清空所有数据？此操作不可恢复！')) return;
+  if (!confirm('再次确认：所有学生、成绩、考勤都将删除！')) return;
+  DB = { students:[], grades:[], attendance:[] };
+  saveDB(); renderDashboard();
+  alert('已清空');
+}
+
+/* ==================== AI 模块（Ollama） ==================== */
+function refreshAIOptions() {
+  const stuSel = document.getElementById('ai-stu-select');
+  stuSel.innerHTML = DB.students.map(s=>`<option value="${s.id}">${s.class} - ${s.name}</option>`).join('') || '<option>请先录入学生</option>';
+  const classes = [...new Set(DB.students.map(s=>s.class))].sort();
+  ['ai-cls-select','ai-summary-cls'].forEach(id => {
+    document.getElementById(id).innerHTML = classes.map(c=>`<option value="${c}">${c}</option>`).join('') || '<option>请先录入学生</option>';
+  });
+}
+async function ollamaChat(prompt, onChunk) {
+  const host = document.getElementById('ai-host').value.replace(/\/$/, '');
+  const model = document.getElementById('ai-model').value;
+  const res = await fetch(host + '/api/generate', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ model, prompt, stream:true })
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '', full = '';
+  while (true) {
+    const {done, value} = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, {stream:true});
+    const lines = buf.split('\n'); buf = lines.pop();
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      try { const obj = JSON.parse(line); if (obj.response) { full += obj.response; onChunk(full); } } catch(e) {}
+    }
+  }
+  return full;
+}
+async function testOllama() {
+  const status = document.getElementById('ai-status');
+  status.className = 'ai-status'; status.textContent = '连接中...';
+  try {
+    const host = document.getElementById('ai-host').value.replace(/\/$/, '');
+    const res = await fetch(host + '/api/tags');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const models = (data.models||[]).map(m=>m.name).join(', ') || '（已连接，但暂无已下载模型）';
+    status.className = 'ai-status ok';
+    status.textContent = '✅ 连接成功！已下载模型：' + models;
+  } catch(e) {
+    status.className = 'ai-status err';
+    status.textContent = '❌ 连接失败：' + e.message + ' · 请确认 Ollama 已安装并启动';
+  }
+}
+async function aiGenComment() {
+  const out = document.getElementById('ai-out-comment');
+  const sid = document.getElementById('ai-stu-select').value;
+  const s = DB.students.find(x=>x.id===sid); if (!s) { out.textContent='请先选择学生'; return; }
+  const grades = DB.grades.filter(g=>g.studentId===sid);
+  const att = DB.attendance.filter(a=>a.studentId===sid);
+  const attCnt = { 出勤:0,缺勤:0,请假:0,迟到:0 }; att.forEach(a=>attCnt[a.status]++);
+  const gradeText = grades.length ? grades.map(g=>`${g.term} ${g.examType} ${g.subject}:${g.score}`).join('；') : '暂无成绩';
+  const prompt = `你是一位认真负责的中学老师，请为下面这位学生写一段约150字的期末评语，语气温和、客观、有鼓励性。\n\n学生：${s.name}（${s.class}）\n成绩情况：${gradeText}\n考勤情况：出勤${attCnt.出勤}天，缺勤${attCnt.缺勤}天，请假${attCnt.请假}天，迟到${attCnt.迟到}天\n\n请直接输出评语正文，不要前缀。`;
+  out.textContent = '正在生成（首次可能较慢）...';
+  try { await ollamaChat(prompt, t => out.textContent = t); }
+  catch(e) { out.textContent = '生成失败：' + e.message + '\n请先点击「测试连接」检查 Ollama 是否启动'; }
+}
+async function aiAnalyze() {
+  const out = document.getElementById('ai-out-analyze');
+  const cls = document.getElementById('ai-cls-select').value;
+  const students = DB.students.filter(s=>s.class===cls);
+  if (!students.length) { out.textContent = '该班级无学生'; return; }
+  const sids = students.map(s=>s.id);
+  const grades = DB.grades.filter(g=>sids.includes(g.studentId));
+  const bySubject = {};
+  grades.forEach(g => { (bySubject[g.subject] ||= []).push(g.score); });
+  const summary = Object.entries(bySubject).map(([sub, arr]) => {
+    const avg = (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1);
+    return `${sub}：平均${avg}分（最高${Math.max(...arr)}，最低${Math.min(...arr)}）`;
+  }).join('\n');
+  const prompt = `你是中学教务分析专家。请基于以下班级数据，生成一份200字以内的成绩分析报告，要点：薄弱科目、整体表现、可能需要关注的方向。\n\n班级：${cls}（共${students.length}人）\n各科成绩：\n${summary}\n\n请直接输出报告正文。`;
+  out.textContent = '正在分析...';
+  try { await ollamaChat(prompt, t => out.textContent = t); }
+  catch(e) { out.textContent = '分析失败：' + e.message; }
+}
+async function aiSummary() {
+  const out = document.getElementById('ai-out-summary');
+  const cls = document.getElementById('ai-summary-cls').value;
+  const students = DB.students.filter(s=>s.class===cls);
+  if (!students.length) { out.textContent = '该班级无学生'; return; }
+  const sids = students.map(s=>s.id);
+  const grades = DB.grades.filter(g=>sids.includes(g.studentId));
+  const att = DB.attendance.filter(a=>sids.includes(a.studentId));
+  const attRate = att.length ? (att.filter(a=>a.status==='出勤'||a.status==='迟到').length*100/att.length).toFixed(1) : '-';
+  const prompt = `你是班主任，请为以下班级写一段250字左右的期末总结，包含整体学习氛围、纪律考勤、未来寄语三部分。\n\n班级：${cls}\n学生人数：${students.length}\n成绩条数：${grades.length}\n整体出勤率：${attRate}%\n\n请直接输出总结正文。`;
+  out.textContent = '正在生成...';
+  try { await ollamaChat(prompt, t => out.textContent = t); }
+  catch(e) { out.textContent = '生成失败：' + e.message; }
+}
+async function aiAsk() {
+  const out = document.getElementById('ai-out-ask');
+  const q = document.getElementById('ai-question').value.trim();
+  if (!q) { out.textContent = '请输入问题'; return; }
+  // 把当前所有数据精简成给 AI 看的上下文
+  const ctx = {
+    学生: DB.students.map(s=>({学号:s.no,姓名:s.name,班级:s.class})),
+    成绩: DB.grades.map(g => {
+      const s = DB.students.find(x=>x.id===g.studentId);
+      return s ? {姓名:s.name, 科目:g.subject, 分数:g.score, 学期:g.term, 考试:g.examType} : null;
+    }).filter(Boolean),
+    考勤汇总: DB.students.map(s => {
+      const recs = DB.attendance.filter(a=>a.studentId===s.id);
+      const cnt = {出勤:0,缺勤:0,请假:0,迟到:0}; recs.forEach(r=>cnt[r.status]++);
+      return {姓名:s.name, ...cnt};
+    })
+  };
+  const prompt = `你是教务助手。请基于下面的 JSON 数据回答问题，用中文回答，简明直接。如果数据不足以回答，请说明。\n\n数据：\n${JSON.stringify(ctx, null, 2)}\n\n问题：${q}\n\n回答：`;
+  out.textContent = '正在思考...';
+  try { await ollamaChat(prompt, t => out.textContent = t); }
+  catch(e) { out.textContent = '回答失败：' + e.message; }
+}
+
+
+
+/* ==================== OCR 模块 ==================== */
+let _ocrService = null;
+let _ocrInitializing = false;
+
+function isMultimodalModel(modelName) {
+  return /^gemma4/i.test(modelName);
+}
+function updateOcrEngineHint() {
+  const model = document.getElementById('ai-model')?.value || '';
+  const info = document.getElementById('ocr-engine-info');
+  if (!info) return;
+  if (isMultimodalModel(model)) {
+    info.textContent = '✨ Gemma 4 视觉直读（最优）';
+    info.className = 'form-control-plaintext fw-bold text-success';
+  } else if (model) {
+    info.textContent = '📷 PaddleOCR → ' + model + ' 文本';
+    info.className = 'form-control-plaintext fw-bold text-primary';
+  } else {
+    info.textContent = '— 请先在 AI 助手页选模型 —';
+    info.className = 'form-control-plaintext fw-bold text-muted';
+  }
+}
+
+function ocrSetStatus(msg, type) {
+  const el = document.getElementById('ocr-status');
+  el.textContent = msg;
+  el.className = 'ai-status' + (type ? ' ' + type : '');
+}
+
+// 监听文件上传，更新预览
+document.getElementById('ocr-file')?.addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    document.getElementById('ocr-preview').src = r.result;
+    document.getElementById('ocr-preview').style.display = 'inline-block';
+    document.getElementById('ocr-preview-empty').style.display = 'none';
+  };
+  r.readAsDataURL(f);
+});
+
+// 把 File → ArrayBuffer
+function fileToArrayBuffer(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsArrayBuffer(file);
+  });
+}
+function fileToDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+// 初始化 PaddleOCR（懒加载）
+async function ensurePaddleOcr() {
+  if (_ocrService) return _ocrService;
+  if (_ocrInitializing) {
+    while (!_ocrService) await new Promise(r => setTimeout(r, 200));
+    return _ocrService;
+  }
+  _ocrInitializing = true;
+  try {
+    ocrSetStatus('正在加载 ONNX Runtime + PaddleOCR 模型 (~16MB，仅首次)...', '');
+    // 检查 window.ort 和 PaddleBundle 已加载
+    if (typeof window.ort === 'undefined') throw new Error('onnxruntime-web 未加载（请确认通过 start.bat 启动，并且 ocr/ 子文件夹存在）');
+    if (typeof window.PaddleBundle === 'undefined' || !window.PaddleBundle.default) throw new Error('paddle-bundle.js 未加载');
+    
+    // 配置 ort wasm 路径
+    window.ort.env.wasm.wasmPaths = './ocr/';
+    
+    const { PaddleOcrService } = window.PaddleBundle.default;
+    
+    // 加载模型 + 字典
+    const [detBuf, recBuf, dictText] = await Promise.all([
+      fetch('./ocr/ch_PP-OCRv4_det_infer.onnx').then(r=>r.arrayBuffer()),
+      fetch('./ocr/ch_PP-OCRv4_rec_infer.onnx').then(r=>r.arrayBuffer()),
+      fetch('./ocr/ppocr_keys_v1.txt').then(r=>r.text())
+    ]);
+    
+    const dict = ['blank', ...dictText.split('\n').filter(x=>x.length), ' '];
+    
+    _ocrService = new PaddleOcrService({
+      model: { detection: detBuf, recognition: recBuf },
+      recognition: { charactersDictionary: dict, imageHeight: 48, strategy: 'per-line' }
+    });
+    await _ocrService.initialize();
+    ocrSetStatus('PaddleOCR 已就绪', 'ok');
+    return _ocrService;
+  } catch(e) {
+    _ocrService = null;
+    ocrSetStatus('PaddleOCR 加载失败: ' + e.message, 'err');
+    throw e;
+  } finally {
+    _ocrInitializing = false;
+  }
+}
+
+// 主识别入口
+async function ocrRecognize() {
+  const file = document.getElementById('ocr-file').files[0];
+  if (!file) { alert('请先上传图片'); return; }
+  const model = document.getElementById('ai-model').value;
+  const out = document.getElementById('ocr-result');
+  
+  if (isMultimodalModel(model)) {
+    // 路线 A: Gemma 4 直接看图，让 AI 转文字
+    out.value = '';
+    ocrSetStatus('正在用 Gemma 4 视觉识别...', '');
+    try {
+      const dataUrl = await fileToDataURL(file);
+      const b64 = dataUrl.split(',')[1];
+      const text = await ollamaChatWithImage(
+        '请把这张图片里的所有文字一字不漏地提取出来，按图中布局输出。不要解释、不要润色。',
+        [b64],
+        t => out.value = t
+      );
+      ocrSetStatus('Gemma 4 识别完成（' + text.length + ' 字符）', 'ok');
+    } catch(e) {
+      ocrSetStatus('识别失败: ' + e.message, 'err');
+    }
+  } else {
+    // 路线 B: PaddleOCR
+    out.value = '';
+    try {
+      const svc = await ensurePaddleOcr();
+      ocrSetStatus('PaddleOCR 推理中...', '');
+      const buf = await fileToArrayBuffer(file);
+      const result = await svc.recognize(buf);
+      const text = result.text || '';
+      out.value = text;
+      ocrSetStatus('PaddleOCR 识别完成（' + result.lines.length + ' 行，' + text.length + ' 字符）', 'ok');
+    } catch(e) {
+      ocrSetStatus('识别失败: ' + e.message, 'err');
+    }
+  }
+}
+
+// 给 Ollama 发图片（用于 Gemma 4）
+async function ollamaChatWithImage(prompt, imagesB64, onChunk) {
+  const host = document.getElementById('ai-host').value.replace(/\/$/, '');
+  const model = document.getElementById('ai-model').value;
+  const res = await fetch(host + '/api/generate', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ model, prompt, images: imagesB64, stream:true })
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + (await res.text()).slice(0,100));
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '', full = '';
+  while (true) {
+    const {done, value} = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, {stream:true});
+    const lines = buf.split('\n'); buf = lines.pop();
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      try { const obj = JSON.parse(line); if (obj.response) { full += obj.response; onChunk(full); } } catch(e) {}
+    }
+  }
+  return full;
+}
+
+// 把 OCR 结果让 AI 解析为学生
+async function ocrToStudents() {
+  const text = document.getElementById('ocr-result').value.trim();
+  if (!text) { alert('请先识别图片'); return; }
+  const aiOut = document.getElementById('ocr-ai-output');
+  aiOut.style.display='block'; aiOut.textContent='AI 解析中...';
+  const prompt = `下面是 OCR 识别出的文字，看起来是学生名单。请提取出每个学生的【学号】、【姓名】、【班级】、【性别】、【联系方式】，输出为标准 JSON 数组（只输出 JSON，不要任何解释和 markdown 标记）。字段不全的留空字符串。格式示例：[{"no":"001","name":"张三","class":"高一(3)班","gender":"男","contact":""}]\n\n识别文字：\n${text}`;
+  let response = '';
+  try {
+    response = await ollamaChat(prompt, t => aiOut.textContent = t);
+    // 提取 JSON
+    const m = response.match(/\[[\s\S]*\]/);
+    if (!m) throw new Error('AI 没返回 JSON 数组，请重试或手动调整识别结果');
+    const arr = JSON.parse(m[0]);
+    if (!confirm(`AI 解析出 ${arr.length} 个学生，确认导入？`)) return;
+    arr.forEach(s => {
+      if (!s.no || !s.name) return;
+      DB.students.push({ id: uid(), no:s.no, name:s.name, class:s.class||'', gender:s.gender||'男', contact:s.contact||'' });
+    });
+    saveDB(); refreshClassOptions(); renderStudents();
+    aiOut.textContent = '✅ 成功导入 ' + arr.filter(s=>s.no&&s.name).length + ' 个学生';
+  } catch(e) {
+    aiOut.textContent = '解析失败: ' + e.message + '\n\n原始 AI 输出:\n' + response;
+  }
+}
+
+async function ocrToGrades() {
+  const text = document.getElementById('ocr-result').value.trim();
+  if (!text) { alert('请先识别图片'); return; }
+  if (!DB.students.length) { alert('请先在「学生管理」录入学生'); return; }
+  const aiOut = document.getElementById('ocr-ai-output');
+  aiOut.style.display='block'; aiOut.textContent='AI 解析中...';
+  const term = document.getElementById('grade-term').value;
+  const exam = document.getElementById('grade-exam').value;
+  const stuList = DB.students.map(s=>s.name).join('、');
+  const prompt = `下面是 OCR 识别出的成绩单。已知学生姓名列表：${stuList}。\n请从识别文字中提取每位学生的各科成绩，输出 JSON 数组：[{"name":"张三","scores":{"语文":85,"数学":92}}, ...]。只输出 JSON。\n\n识别文字：\n${text}`;
+  let response = '';
+  try {
+    response = await ollamaChat(prompt, t => aiOut.textContent = t);
+    const m = response.match(/\[[\s\S]*\]/);
+    if (!m) throw new Error('AI 没返回 JSON');
+    const arr = JSON.parse(m[0]);
+    let cnt = 0;
+    arr.forEach(item => {
+      const s = DB.students.find(x=>x.name===item.name);
+      if (!s || !item.scores) return;
+      Object.entries(item.scores).forEach(([sub, score]) => {
+        if (score === null || score === '' || isNaN(score)) return;
+        const idx = DB.grades.findIndex(g=>g.studentId===s.id && g.subject===sub && g.term===term && g.examType===exam);
+        const rec = { studentId:s.id, subject:sub, score:Number(score), term, examType:exam };
+        if (idx>=0) DB.grades[idx]=rec; else DB.grades.push(rec);
+        cnt++;
+      });
+    });
+    saveDB(); renderGrades();
+    aiOut.textContent = `✅ 已导入 ${cnt} 条成绩到「${term} - ${exam}」`;
+  } catch(e) {
+    aiOut.textContent = '解析失败: ' + e.message + '\n\n原始 AI 输出:\n' + response;
+  }
+}
+
+async function ocrToAI() {
+  const text = document.getElementById('ocr-result').value.trim();
+  if (!text) { alert('请先识别图片'); return; }
+  const q = prompt('对这段识别结果想问什么？（例如：帮我整理成表格 / 提取所有联系电话 / 哪些学生迟到了）');
+  if (!q) return;
+  const aiOut = document.getElementById('ocr-ai-output');
+  aiOut.style.display='block'; aiOut.textContent='AI 处理中...';
+  const fullPrompt = `下面是 OCR 识别出的文字：\n${text}\n\n用户问题：${q}\n\n请给出回答。`;
+  try { await ollamaChat(fullPrompt, t => aiOut.textContent = t); }
+  catch(e) { aiOut.textContent = '失败: ' + e.message; }
+}
+
+// 监听 AI 模型变化，同步更新 OCR 引擎指示
+document.getElementById('ai-model')?.addEventListener('change', updateOcrEngineHint);
+// 初始化
+updateOcrEngineHint();
+
+
+
+
+
+/* ==================== 表格导入模块 ==================== */
+const FIELD_DEFS = {
+  students: [
+    { key:'no',      label:'学号',    required:true,  hints:['学号','学籍','编号','学号 ','no','id','学号/编号'] },
+    { key:'name',    label:'姓名',    required:true,  hints:['姓名','姓 名','名字','学生姓名','name','student'] },
+    { key:'class',   label:'班级',    required:true,  hints:['班级','所在班','班级名称','class','grade'] },
+    { key:'gender',  label:'性别',    required:false, hints:['性别','sex','gender','男女'] },
+    { key:'contact', label:'联系方式', required:false, hints:['联系方式','联系电话','电话','手机','家长电话','contact','phone','tel'] },
+  ],
+  // 成绩特殊：1 个姓名列 + N 个科目列（动态）
+  grades: [
+    { key:'name',    label:'学生姓名', required:true,  hints:['姓名','名字','学生姓名','学生','student','name'] },
+  ],
+  attendance: [
+    { key:'name',    label:'学生姓名', required:true,  hints:['姓名','学生','name'] },
+    { key:'date',    label:'日期',    required:true,  hints:['日期','date','time','时间'] },
+    { key:'status',  label:'状态',    required:true,  hints:['状态','出勤','考勤','status','attendance'] },
+  ]
+};
+
+let _importState = { type:null, workbook:null, sheetName:null, headers:[], rows:[], mapping:{} };
+
+function openImportModal(type) {
+  _importState = { type, workbook:null, sheetName:null, headers:[], rows:[], mapping:{} };
+  const titles = { students:'导入学生名单', grades:'导入成绩表', attendance:'导入考勤表' };
+  document.getElementById('importModalTitle').textContent = titles[type];
+  document.getElementById('imp-file').value = '';
+  document.getElementById('imp-sheet').innerHTML = '';
+  const hr = document.getElementById('imp-header-row'); if(hr){ hr.innerHTML=''; delete hr.dataset.userset; }
+  document.getElementById('imp-mapping-area').style.display = 'none';
+  document.getElementById('imp-confirm-btn').disabled = true;
+  document.getElementById('imp-summary').innerHTML = '';
+  new bootstrap.Modal('#importModal').show();
+}
+
+document.getElementById('imp-file')?.addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const buf = await f.arrayBuffer();
+    const wb = XLSX.read(buf, { type:'array', cellDates:true });
+    _importState.workbook = wb;
+    const sel = document.getElementById('imp-sheet');
+    sel.innerHTML = wb.SheetNames.map(n => `<option value="${n}">${n}</option>`).join('');
+    _importState.sheetName = wb.SheetNames[0];
+    rebuildImportPreview();
+  } catch(err) {
+    alert('读取文件失败：' + err.message);
+  }
+});
+
+function rebuildImportPreview() {
+  const wb = _importState.workbook; if (!wb) return;
+  const name = document.getElementById('imp-sheet').value || wb.SheetNames[0];
+  _importState.sheetName = name;
+  const sheet = wb.Sheets[name];
+  const aoa = XLSX.utils.sheet_to_json(sheet, { header:1, defval:'', raw:false });
+  if (!aoa.length) { document.getElementById('imp-summary').innerHTML = '<span class="text-danger">该工作表为空</span>'; return; }
+
+  // 自动检测表头行：找前 5 行里"含关键词最多 + 非空格子最多"的那行
+  const KEYWORDS = ['学号','姓名','班级','性别','电话','联系','日期','状态','语文','数学','英语','物理','化学','生物','政治','历史','地理','考号','学籍'];
+  let bestRow = 0, bestScore = -1;
+  for (let i=0; i<Math.min(5, aoa.length); i++) {
+    const row = aoa[i] || [];
+    const filled = row.filter(c => String(c||'').trim()).length;
+    const kwHit = row.filter(c => KEYWORDS.some(kw => String(c||'').includes(kw))).length;
+    const score = kwHit*10 + filled;
+    if (score > bestScore) { bestScore = score; bestRow = i; }
+  }
+
+  // 填充表头行下拉（用户可手改）
+  const hSel = document.getElementById('imp-header-row');
+  if (!hSel.dataset.userset) {
+    hSel.innerHTML = aoa.slice(0, Math.min(8, aoa.length)).map((row,i) => {
+      const preview = row.slice(0,6).map(c=>String(c||'').slice(0,10)).join(' | ');
+      const tag = i===bestRow ? ' (推荐)' : '';
+      return `<option value="${i}">第 ${i+1} 行${tag}：${preview}</option>`;
+    }).join('');
+    hSel.value = String(bestRow);
+  }
+  const headerRowIdx = parseInt(hSel.value);
+
+  const headers = (aoa[headerRowIdx]||[]).map(h => String(h||'').trim());
+  const dataRows = aoa.slice(headerRowIdx+1).filter(r => r.some(c => String(c||'').trim()));
+  _importState.headers = headers;
+  _importState.rows = dataRows;
+  autoDetectMapping();
+  renderMappingUI();
+  renderPreviewTable();
+  document.getElementById('imp-mapping-area').style.display = 'block';
+  validateMapping();
+}
+
+function autoDetectMapping() {
+  const type = _importState.type;
+  const headers = _importState.headers;
+  const fields = FIELD_DEFS[type];
+  const mapping = {};
+  fields.forEach(field => {
+    let best = -1;
+    for (let i=0; i<headers.length; i++) {
+      const h = headers[i].toLowerCase().replace(/\s+/g,'');
+      if (field.hints.some(hint => h === hint.toLowerCase() || h.includes(hint.toLowerCase()))) {
+        best = i; break;
+      }
+    }
+    mapping[field.key] = best;
+  });
+  // 成绩表：除"姓名"列外，其余非空表头视为科目（排除汇总列）
+  const EXCLUDE_SUBJ = ['总分','合计','平均','平均分','均分','班排','校排','排名','名次','rank','total','学号','考号','学籍','班级','性别','电话','联系'];
+  if (type === 'grades') {
+    mapping._subjects = [];
+    headers.forEach((h, i) => {
+      if (i === mapping.name || !h.trim()) return;
+      const lower = h.toLowerCase();
+      if (EXCLUDE_SUBJ.some(x => h.includes(x) || lower.includes(x.toLowerCase()))) return;
+      mapping._subjects.push({ col: i, name: h });
+    });
+  }
+  _importState.mapping = mapping;
+}
+
+function renderMappingUI() {
+  const type = _importState.type;
+  const headers = _importState.headers;
+  const fields = FIELD_DEFS[type];
+  const opts = '<option value="-1">— 不映射 —</option>' + headers.map((h,i)=>`<option value="${i}">${String.fromCharCode(65+i)}列：${h||'(空)'}</option>`).join('');
+  const rows = fields.map(field => {
+    const cur = _importState.mapping[field.key];
+    const req = field.required ? '<span class="text-danger">*</span>' : '';
+    return `
+      <div class="col-md-4">
+        <label class="form-label small mb-1">${field.label} ${req}</label>
+        <select class="form-select form-select-sm" data-field="${field.key}" onchange="onMappingChange(this)">
+          ${opts.replace(`value="${cur}"`, `value="${cur}" selected`)}
+        </select>
+      </div>`;
+  }).join('');
+  let extra = '';
+  if (type === 'grades') {
+    const subs = _importState.mapping._subjects || [];
+    extra = `<div class="col-12 mt-1"><small class="text-muted">已识别 <b>${subs.length}</b> 个科目列：${subs.map(s=>s.name).join('、') || '无'}</small></div>`;
+  }
+  document.getElementById('imp-mapping-rows').innerHTML = rows + extra;
+}
+
+function onMappingChange(sel) {
+  _importState.mapping[sel.dataset.field] = parseInt(sel.value);
+  if (_importState.type === 'grades') {
+    const headers = _importState.headers;
+    const nameCol = _importState.mapping.name;
+    const EXCLUDE_SUBJ = ['总分','合计','平均','平均分','均分','班排','校排','排名','名次','rank','total','学号','考号','学籍','班级','性别','电话','联系'];
+    _importState.mapping._subjects = [];
+    headers.forEach((h, i) => {
+      if (i === nameCol || !h.trim()) return;
+      const lower = h.toLowerCase();
+      if (EXCLUDE_SUBJ.some(x => h.includes(x) || lower.includes(x.toLowerCase()))) return;
+      _importState.mapping._subjects.push({ col: i, name: h });
+    });
+    renderMappingUI();
+  }
+  validateMapping();
+}
+
+function renderPreviewTable() {
+  const headers = _importState.headers;
+  const rows = _importState.rows.slice(0, 5);
+  const t = document.getElementById('imp-preview-table');
+  t.innerHTML = '<thead><tr>' + headers.map((h,i)=>`<th>${String.fromCharCode(65+i)}：${h||'(空)'}</th>`).join('') + '</tr></thead>' +
+                '<tbody>' + rows.map(r => '<tr>'+headers.map((_,i)=>`<td>${r[i]??''}</td>`).join('')+'</tr>').join('') + '</tbody>';
+}
+
+function validateMapping() {
+  const type = _importState.type;
+  const fields = FIELD_DEFS[type];
+  const missing = fields.filter(f => f.required && (_importState.mapping[f.key]===undefined || _importState.mapping[f.key]<0));
+  const total = _importState.rows.length;
+  const btn = document.getElementById('imp-confirm-btn');
+  const sum = document.getElementById('imp-summary');
+  if (missing.length) {
+    btn.disabled = true;
+    sum.innerHTML = `<span class="text-danger">⚠ 必填字段未映射：${missing.map(f=>f.label).join('、')}</span>`;
+  } else if (total === 0) {
+    btn.disabled = true;
+    sum.innerHTML = '<span class="text-warning">无可导入的数据行</span>';
+  } else {
+    btn.disabled = false;
+    sum.innerHTML = `<span class="text-success">✓ 准备导入 <b>${total}</b> 条记录</span>`;
+  }
+}
+
+function confirmImport() {
+  const type = _importState.type;
+  const rows = _importState.rows;
+  const map = _importState.mapping;
+  const getCell = (row, col) => col<0 ? '' : String(row[col]??'').trim();
+  let added = 0, skipped = 0, updated = 0;
+  
+  if (type === 'students') {
+    rows.forEach(r => {
+      const no = getCell(r, map.no);
+      const name = getCell(r, map.name);
+      const cls = getCell(r, map.class);
+      if (!no || !name || !cls) { skipped++; return; }
+      let gender = getCell(r, map.gender) || '男';
+      if (!['男','女'].includes(gender)) gender = gender.includes('女') ? '女' : '男';
+      const contact = getCell(r, map.contact);
+      const existing = DB.students.find(s => s.no === no);
+      if (existing) {
+        Object.assign(existing, { name, class:cls, gender, contact });
+        updated++;
+      } else {
+        DB.students.push({ id: uid(), no, name, class:cls, gender, contact });
+        added++;
+      }
+    });
+  } else if (type === 'grades') {
+    const term = document.getElementById('grade-term').value;
+    const exam = document.getElementById('grade-exam').value;
+    const subjects = map._subjects || [];
+    if (!subjects.length) { alert('未识别到任何科目列，请检查表头行是否选对'); return; }
+    if (!DB.students.length) { alert('系统里还没有学生！请先在「学生管理」录入或导入学生名单，再来导入成绩。'); return; }
+    const notFoundNames = new Set();
+    rows.forEach(r => {
+      const name = getCell(r, map.name).trim();
+      if (!name) { skipped++; return; }
+      const stu = DB.students.find(s => s.name === name || s.name.trim() === name);
+      if (!stu) { skipped++; notFoundNames.add(name); return; }
+      subjects.forEach(sub => {
+        const val = getCell(r, sub.col);
+        if (!val || isNaN(Number(val))) return;
+        const score = Number(val);
+        const idx = DB.grades.findIndex(g => g.studentId===stu.id && g.subject===sub.name && g.term===term && g.examType===exam);
+        const rec = { studentId:stu.id, subject:sub.name, score, term, examType:exam };
+        if (idx>=0) { DB.grades[idx] = rec; updated++; } else { DB.grades.push(rec); added++; }
+      });
+    });
+    if (notFoundNames.size) {
+      const sample = [...notFoundNames].slice(0, 5).join('、');
+      window._lastImportDetail = `以下 ${notFoundNames.size} 个学生姓名在系统中找不到：${sample}${notFoundNames.size>5?' 等':''}\n请先在「学生管理」录入或导入这些学生。`;
+    }
+  } else if (type === 'attendance') {
+    rows.forEach(r => {
+      const name = getCell(r, map.name);
+      let date = getCell(r, map.date);
+      const status = getCell(r, map.status);
+      if (!name || !date || !status) { skipped++; return; }
+      // 标准化日期
+      if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(date)) {
+        date = date.replace(/\//g, '-').split(' ')[0];
+        const [y,m,d] = date.split('-');
+        date = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+      }
+      // 标准化状态
+      let s = '出勤';
+      if (status.includes('缺') || status.toLowerCase().includes('absent')) s = '缺勤';
+      else if (status.includes('请') || status.toLowerCase().includes('leave')) s = '请假';
+      else if (status.includes('迟') || status.toLowerCase().includes('late')) s = '迟到';
+      const stu = DB.students.find(x => x.name === name);
+      if (!stu) { skipped++; return; }
+      const idx = DB.attendance.findIndex(a => a.studentId===stu.id && a.date===date);
+      if (idx>=0) { DB.attendance[idx].status = s; updated++; }
+      else { DB.attendance.push({ studentId:stu.id, date, status:s }); added++; }
+    });
+  }
+  saveDB();
+  refreshClassOptions();
+  if (type === 'students') renderStudents();
+  if (type === 'grades') renderGrades();
+  if (type === 'attendance') renderAttendance();
+  renderDashboard();
+  bootstrap.Modal.getInstance(document.getElementById('importModal')).hide();
+  alert(`导入完成！\n新增 ${added} 条，更新 ${updated} 条，跳过 ${skipped} 条`);
+}
+
+
+
+/* ==================== 全局 AI 命令栏 ==================== */
+function aiBarBuildContext() {
+  // 当前数据摘要
+  const classes = [...new Set(DB.students.map(s=>s.class))].sort();
+  const subjects = [...new Set(DB.grades.map(g=>g.subject))];
+  const ctx = {
+    总学生数: DB.students.length,
+    班级列表: classes,
+    科目: subjects,
+    学生明细: DB.students.map(s => ({姓名:s.name, 班级:s.class, 学号:s.no})),
+    成绩: DB.grades.map(g => {
+      const s = DB.students.find(x=>x.id===g.studentId);
+      return s ? {姓名:s.name, 科目:g.subject, 分数:g.score, 学期:g.term, 考试:g.examType} : null;
+    }).filter(Boolean),
+    考勤统计: DB.students.map(s => {
+      const recs = DB.attendance.filter(a=>a.studentId===s.id);
+      const cnt = {出勤:0,缺勤:0,请假:0,迟到:0}; recs.forEach(r=>cnt[r.status]++);
+      return {姓名:s.name, ...cnt};
+    })
+  };
+  return ctx;
+}
+
+async function aiBarSubmit() {
+  const inputEl = document.getElementById('ai-bar-input');
+  const q = inputEl.value.trim();
+  if (!q) return;
+  const outputBox = document.getElementById('ai-bar-output');
+  const outputBody = document.getElementById('ai-bar-output-body');
+  const statusEl = document.getElementById('ai-bar-output-status');
+  const sendText = document.getElementById('ai-bar-send-text');
+  const sendLoad = document.getElementById('ai-bar-send-loading');
+  
+  outputBox.style.display = 'block';
+  outputBody.textContent = '';
+  statusEl.textContent = '🤔 思考中...';
+  sendText.style.display = 'none';
+  sendLoad.style.display = 'inline';
+  
+  try {
+    const ctx = aiBarBuildContext();
+    const prompt = `你是 ClassWise 教务系统的智能助手。基于下面的实时数据，用中文简明回答用户的问题或执行用户的指令。如果数据不足以回答，请明确说明。如果是要"生成评语"、"写总结"这类创作任务，请直接给出内容。\n\n=== 当前系统数据 ===\n${JSON.stringify(ctx, null, 2)}\n\n=== 用户问题/指令 ===\n${q}\n\n=== 回答 ===\n`;
+    await ollamaChat(prompt, txt => outputBody.textContent = txt);
+    statusEl.textContent = '✅ AI 回答：';
+  } catch(e) {
+    statusEl.textContent = '❌ 失败';
+    outputBody.textContent = '调用失败：' + e.message + '\n\n请先在「🤖 AI 助手」页测试连接，确保 Ollama 已启动。';
+  } finally {
+    sendText.style.display = 'inline';
+    sendLoad.style.display = 'none';
+  }
+}
+function aiBarClose() {
+  document.getElementById('ai-bar-output').style.display = 'none';
+  document.getElementById('ai-bar-input').value = '';
+  document.getElementById('ai-bar-input').focus();
+}
+// 回车键提交
+document.getElementById('ai-bar-input')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); aiBarSubmit(); }
+});
+
+/* ==================== Dashboard 交互 ==================== */
+function goPage(page) {
+  const link = document.querySelector(`#mainNav .nav-link[data-page="${page}"]`);
+  if (link) link.click();
+}
+function updateDashGreeting() {
+  const el = document.getElementById('dash-greeting'); if (!el) return;
+  const h = new Date().getHours();
+  const greet = h < 6 ? '凌晨好' : h < 12 ? '上午好' : h < 14 ? '中午好' : h < 18 ? '下午好' : '晚上好';
+  const today = new Date().toLocaleDateString('zh-CN', {year:'numeric', month:'long', day:'numeric', weekday:'long'});
+  el.textContent = `${greet}，${today}`;
+}
+async function updateDashStatus() {
+  // Ollama 状态
+  try {
+    const host = (document.getElementById('ai-host')?.value || 'http://localhost:11434').replace(/\/$/, '');
+    const res = await fetch(host + '/api/tags', { signal: AbortSignal.timeout(2000) });
+    const data = await res.json();
+    const cnt = (data.models||[]).length;
+    document.getElementById('dash-dot-ollama').className = 'status-dot ok';
+    document.getElementById('dash-ollama-info').textContent = `已连接，${cnt} 个模型可用`;
+  } catch(e) {
+    document.getElementById('dash-dot-ollama').className = 'status-dot err';
+    document.getElementById('dash-ollama-info').textContent = '未连接（点配置去 AI 助手页）';
+  }
+  // OCR 状态
+  const ortReady = typeof window.ort !== 'undefined';
+  const pdReady = typeof window.PaddleBundle !== 'undefined';
+  const ocrEl = document.getElementById('dash-dot-ocr');
+  const ocrInfo = document.getElementById('dash-ocr-info');
+  if (ortReady && pdReady) {
+    ocrEl.className = 'status-dot ok';
+    ocrInfo.textContent = '已就绪（PaddleOCR 可用）';
+  } else {
+    ocrEl.className = 'status-dot warn';
+    ocrInfo.textContent = '资源未就绪（请通过 start.bat 启动）';
+  }
+  // 备份状态
+  const last = localStorage.getItem('jwxt_last_backup');
+  const el = document.getElementById('dash-dot-backup');
+  const info = document.getElementById('dash-backup-info');
+  if (last) {
+    const days = Math.floor((Date.now() - Number(last)) / 86400000);
+    if (days < 7) { el.className = 'status-dot ok'; info.textContent = `${days} 天前已备份`; }
+    else if (days < 30) { el.className = 'status-dot warn'; info.textContent = `${days} 天未备份，建议导出`; }
+    else { el.className = 'status-dot err'; info.textContent = `超过 ${days} 天未备份！`; }
+  } else {
+    el.className = 'status-dot warn';
+    info.textContent = '尚未备份过，建议每周一次';
+  }
+}
+// 让首页加载时执行
+const _origRenderDashboard = renderDashboard;
+renderDashboard = function() {
+  _origRenderDashboard();
+  updateDashGreeting();
+  updateDashStatus();
+};
+// 包装 exportJSON 自动写时间戳
+const _origExportJSON = exportJSON;
+exportJSON = function() {
+  _origExportJSON();
+  localStorage.setItem('jwxt_last_backup', String(Date.now()));
+};
+
+/* ==================== 启动 ==================== */
+
+/* ==================== 主题切换 ==================== */
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('jwxt_theme', theme);
+  const icon = document.getElementById('theme-icon');
+  const label = document.getElementById('theme-label');
+  if (icon && label) {
+    if (theme === 'dark') { icon.textContent = '☀️'; label.textContent = '浅色模式'; }
+    else { icon.textContent = '🌙'; label.textContent = '深色模式'; }
+  }
+}
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme') || 'light';
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
+}
+// 启动时恢复用户主题（默认浅色）
+applyTheme(localStorage.getItem('jwxt_theme') || 'light');
+
+loadDB();
+renderDashboard();
+refreshClassOptions();
+// 默认日期为今天
+document.getElementById('att-date').value = new Date().toISOString().slice(0,10);
+</script>
+
+
+<!-- OCR 资源：仅当通过 start.bat 启动时生效 -->
+<script src="./ocr/ort.all.min.js" onerror="console.warn('ort.all.min.js failed to load')"></script>
+<script src="./ocr/paddle-bundle.js" onerror="console.warn('paddle-bundle.js failed to load')"></script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+# ===== 版本备份 zip（不入库，180MB+） =====
+*.zip
+版本备份/
+
+# ===== 暂存的弃用文件 =====
+杂项/
+
+# ===== 临时 / 系统文件 =====
+Thumbs.db
+.DS_Store
+desktop.ini
+*.tmp
+*.log
+
+# ===== 编辑器 =====
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ===== 浏览器/Node 缓存 =====
+node_modules/
+.cache/
+
