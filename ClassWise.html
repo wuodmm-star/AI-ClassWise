@@ -347,6 +347,34 @@
   .magnet-card:hover .magnet-arrow { opacity:1; transform:translateX(0); background:rgba(var(--card-rgb),0.22); }
 
   .dash-subtitle { font-size:13px; color:var(--text-muted); margin:0; }
+
+  /* === Homepage AI picker === */
+  .ai-picker-bar {
+    display:flex; align-items:center; gap:14px;
+    padding:14px 20px; margin-top:24px;
+    background:var(--bg-card-solid);
+    border:1px solid var(--border);
+    border-radius:14px;
+    transition:border-color .25s ease, box-shadow .25s ease;
+  }
+  .ai-picker-bar:hover { border-color:var(--accent); box-shadow:0 6px 24px -10px rgba(0,113,227,0.2); }
+  .ai-picker-icon {
+    width:36px; height:36px; border-radius:10px;
+    background:linear-gradient(135deg, #8b5cf6, #06b6d4);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .ai-picker-icon svg { width:18px; height:18px; color:#fff; stroke-width:2; }
+  .ai-picker-text { display:flex; flex-direction:column; line-height:1.25; min-width:0; }
+  .ai-picker-label { font-size:11px; font-weight:600; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin:0; }
+  .ai-picker-status { font-size:12px; color:var(--text-muted); margin:2px 0 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ai-picker-status.ok  { color:#10b981; }
+  .ai-picker-status.err { color:#ef4444; }
+  .ai-picker-select { flex:1; max-width:340px; margin-left:auto; }
+  @media (max-width: 640px) {
+    .ai-picker-bar { flex-wrap:wrap; }
+    .ai-picker-select { max-width:100%; width:100%; margin-left:0; }
+  }
 </style>
 </head>
 <body>
@@ -494,6 +522,20 @@
             <div class="magnet-arrow">→</div>
           </div>
 
+        </div>
+
+        <!-- 当前 AI 选择器（单独一行） -->
+        <div class="ai-picker-bar">
+          <div class="ai-picker-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.6 4.8L18 9.4l-4.4 1.6L12 16l-1.6-5L6 9.4l4.4-1.6z"/><path d="M19 14l.7 2.1L22 17l-2.3.9L19 20l-.7-2.1L16 17l2.3-.9z"/></svg>
+          </div>
+          <div class="ai-picker-text">
+            <span class="ai-picker-label">当前 AI</span>
+            <span class="ai-picker-status" id="ai-picker-status">未选择</span>
+          </div>
+          <select id="ai-picker" class="form-select ai-picker-select" onchange="onAIPickerChange()">
+            <option value="">— 加载中 —</option>
+          </select>
         </div>
       </section>
 
@@ -650,6 +692,43 @@
             </div>
           </div>
           <div class="ai-status mt-2" id="ai-status">未连接 · 请先安装 Ollama 并下载对应模型</div>
+        </div>
+
+        <!-- 云端 DeepSeek 配置 -->
+        <div class="card p-3 mb-3">
+          <div class="d-flex align-items-center mb-2">
+            <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#8b5cf6,#06b6d4);display:flex;align-items:center;justify-content:center;margin-right:10px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+            </div>
+            <h6 class="mb-0">云端 DeepSeek（可选）</h6>
+            <small class="text-muted ms-2">— 老电脑跑不动本地模型时用这个，响应快</small>
+          </div>
+          <div class="row g-2 align-items-end">
+            <div class="col-md-6">
+              <label class="form-label">API Key</label>
+              <input id="dssk-key" type="password" class="form-control" placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">模型</label>
+              <select id="dssk-model" class="form-select">
+                <option value="deepseek-chat" selected>deepseek-chat（V3，性价比）</option>
+                <option value="deepseek-reasoner">deepseek-reasoner（R1，推理强）</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <button class="btn btn-outline-primary w-100" onclick="saveDeepSeekKey()">保存并测试</button>
+            </div>
+          </div>
+          <div class="row g-2 mt-2">
+            <div class="col-md-9">
+              <label class="form-label">接口地址（默认即可，OpenAI 兼容可改）</label>
+              <input id="dssk-endpoint" class="form-control" value="https://api.deepseek.com/v1">
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <button class="btn btn-outline-danger w-100" onclick="clearDeepSeekKey()">清除 Key</button>
+            </div>
+          </div>
+          <div class="ai-status mt-2" id="dssk-status">尚未配置 · 申请 Key: <a href="https://platform.deepseek.com/api_keys" target="_blank">platform.deepseek.com</a></div>
         </div>
 
         <div class="row g-3">
@@ -1276,14 +1355,40 @@ function refreshAIOptions() {
     document.getElementById(id).innerHTML = classes.map(c=>`<option value="${c}">${c}</option>`).join('') || '<option>请先录入学生</option>';
   });
 }
+/* ==================== AI 调度器 ==================== */
+function getActiveAI() {
+  const provider = localStorage.getItem('jwxt_ai_provider') || 'ollama';
+  if (provider === 'deepseek') {
+    return {
+      provider: 'deepseek',
+      model: localStorage.getItem('jwxt_deepseek_model') || 'deepseek-chat',
+      endpoint: localStorage.getItem('jwxt_deepseek_endpoint') || 'https://api.deepseek.com/v1',
+      apiKey: localStorage.getItem('jwxt_deepseek_key') || ''
+    };
+  }
+  // 默认 Ollama
+  const modelEl = document.getElementById('ai-model');
+  const hostEl  = document.getElementById('ai-host');
+  return {
+    provider: 'ollama',
+    model: localStorage.getItem('jwxt_ai_model') || (modelEl ? modelEl.value : 'qwen2.5:7b'),
+    endpoint: ((hostEl ? hostEl.value : 'http://localhost:11434')).replace(/\/$/, '')
+  };
+}
+
+// 兼容旧调用名：所有现有 ollamaChat(prompt, onChunk) 现在自动按当前 provider 路由
 async function ollamaChat(prompt, onChunk) {
-  const host = document.getElementById('ai-host').value.replace(/\/$/, '');
-  const model = document.getElementById('ai-model').value;
-  const res = await fetch(host + '/api/generate', {
+  const ai = getActiveAI();
+  if (ai.provider === 'deepseek') return _callDeepSeek(prompt, onChunk, ai);
+  return _callOllama(prompt, onChunk, ai);
+}
+
+async function _callOllama(prompt, onChunk, ai) {
+  const res = await fetch(ai.endpoint + '/api/generate', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ model, prompt, stream:true })
+    body: JSON.stringify({ model: ai.model, prompt, stream:true })
   });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
+  if (!res.ok) throw new Error('Ollama HTTP ' + res.status);
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buf = '', full = '';
@@ -1295,6 +1400,44 @@ async function ollamaChat(prompt, onChunk) {
     for (const line of lines) {
       if (!line.trim()) continue;
       try { const obj = JSON.parse(line); if (obj.response) { full += obj.response; onChunk(full); } } catch(e) {}
+    }
+  }
+  return full;
+}
+
+async function _callDeepSeek(prompt, onChunk, ai) {
+  if (!ai.apiKey) throw new Error('请先在「AI 助手」页填入 DeepSeek API Key');
+  const res = await fetch(ai.endpoint.replace(/\/$/, '') + '/chat/completions', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + ai.apiKey },
+    body: JSON.stringify({
+      model: ai.model,
+      messages: [{ role:'user', content: prompt }],
+      stream: true
+    })
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(()=>'');
+    throw new Error('DeepSeek HTTP ' + res.status + ' ' + txt.slice(0,200));
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '', full = '';
+  while (true) {
+    const {done, value} = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, {stream:true});
+    const lines = buf.split('\n'); buf = lines.pop();
+    for (const line of lines) {
+      const t = line.trim();
+      if (!t || !t.startsWith('data:')) continue;
+      const payload = t.slice(5).trim();
+      if (payload === '[DONE]') continue;
+      try {
+        const obj = JSON.parse(payload);
+        const delta = obj.choices?.[0]?.delta?.content;
+        if (delta) { full += delta; onChunk(full); }
+      } catch(e) {}
     }
   }
   return full;
@@ -1313,6 +1456,137 @@ async function testOllama() {
   } catch(e) {
     status.className = 'ai-status err';
     status.textContent = '❌ 连接失败：' + e.message + ' · 请确认 Ollama 已安装并启动';
+  }
+  populateAIPicker();
+}
+
+/* ==================== DeepSeek 配置 ==================== */
+async function saveDeepSeekKey() {
+  const key      = document.getElementById('dssk-key').value.trim();
+  const model    = document.getElementById('dssk-model').value;
+  const endpoint = document.getElementById('dssk-endpoint').value.trim() || 'https://api.deepseek.com/v1';
+  const status   = document.getElementById('dssk-status');
+  if (!key) { status.className='ai-status err'; status.textContent='请填入 API Key'; return; }
+  status.className='ai-status'; status.textContent='测试连接中...';
+  try {
+    const res = await fetch(endpoint.replace(/\/$/, '') + '/chat/completions', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + key },
+      body: JSON.stringify({ model, messages:[{role:'user', content:'ok'}], max_tokens:5, stream:false })
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(()=>'');
+      throw new Error('HTTP ' + res.status + ' ' + txt.slice(0,150));
+    }
+    localStorage.setItem('jwxt_deepseek_key', key);
+    localStorage.setItem('jwxt_deepseek_model', model);
+    localStorage.setItem('jwxt_deepseek_endpoint', endpoint);
+    status.className='ai-status ok';
+    status.textContent='✅ Key 验证成功并已保存（仅存于本机浏览器）';
+    populateAIPicker();
+  } catch(e) {
+    status.className='ai-status err';
+    status.textContent='❌ ' + e.message + ' · 检查 Key 与网络';
+  }
+}
+function clearDeepSeekKey() {
+  if (!confirm('确认清除 DeepSeek API Key？')) return;
+  localStorage.removeItem('jwxt_deepseek_key');
+  localStorage.removeItem('jwxt_deepseek_model');
+  localStorage.removeItem('jwxt_deepseek_endpoint');
+  document.getElementById('dssk-key').value = '';
+  const status = document.getElementById('dssk-status');
+  status.className='ai-status'; status.textContent='已清除 · 申请 Key: platform.deepseek.com';
+  // 如当前正在用 DeepSeek，切回 Ollama
+  if (localStorage.getItem('jwxt_ai_provider') === 'deepseek') {
+    localStorage.setItem('jwxt_ai_provider', 'ollama');
+  }
+  populateAIPicker();
+}
+function loadDeepSeekSettings() {
+  const key = localStorage.getItem('jwxt_deepseek_key');
+  const model = localStorage.getItem('jwxt_deepseek_model');
+  const ep = localStorage.getItem('jwxt_deepseek_endpoint');
+  const k = document.getElementById('dssk-key');
+  const m = document.getElementById('dssk-model');
+  const e = document.getElementById('dssk-endpoint');
+  const s = document.getElementById('dssk-status');
+  if (k && key) k.value = key;
+  if (m && model) m.value = model;
+  if (e && ep) e.value = ep;
+  if (s && key) { s.className='ai-status ok'; s.textContent='✅ 已配置 Key · 可在首页选用 DeepSeek'; }
+}
+
+/* ==================== 首页 AI 选择器 ==================== */
+function populateAIPicker() {
+  const sel = document.getElementById('ai-picker');
+  if (!sel) return;
+  const ollamaModels = [
+    { value:'ollama:qwen2.5:0.5b',  label:'Qwen2.5 0.5B · 入门档（本地，4GB 可跑）' },
+    { value:'ollama:qwen2.5:7b',    label:'Qwen2.5 7B · 标准档（本地，中文佳）' },
+    { value:'ollama:gemma4:e4b',    label:'Gemma 4 E4B · 多模态（本地，可看图）' },
+    { value:'ollama:gemma4',        label:'Gemma 4 26B · 旗舰档（本地，需高配）' },
+  ];
+  const dsskKey = localStorage.getItem('jwxt_deepseek_key');
+  const dsskModel = localStorage.getItem('jwxt_deepseek_model') || 'deepseek-chat';
+
+  let html = '<optgroup label="本地 Ollama">';
+  html += ollamaModels.map(m => `<option value="${m.value}">${m.label}</option>`).join('');
+  html += '</optgroup>';
+  if (dsskKey) {
+    html += '<optgroup label="云端 DeepSeek">';
+    html += `<option value="deepseek:${dsskModel}">${dsskModel === 'deepseek-reasoner' ? 'DeepSeek R1 · 推理强（云端）' : 'DeepSeek V3 · 性价比（云端）'}</option>`;
+    html += '</optgroup>';
+  }
+  sel.innerHTML = html;
+
+  // 恢复保存的选择
+  const provider = localStorage.getItem('jwxt_ai_provider') || 'ollama';
+  const model    = provider === 'deepseek'
+    ? (localStorage.getItem('jwxt_deepseek_model') || 'deepseek-chat')
+    : (localStorage.getItem('jwxt_ai_model') || 'qwen2.5:7b');
+  const want = `${provider}:${model}`;
+  if ([...sel.options].some(o => o.value === want)) {
+    sel.value = want;
+  } else {
+    sel.value = 'ollama:qwen2.5:7b';
+    saveAIPickerChoice('ollama', 'qwen2.5:7b');
+  }
+  updateAIPickerStatus();
+}
+function saveAIPickerChoice(provider, model) {
+  localStorage.setItem('jwxt_ai_provider', provider);
+  if (provider === 'ollama') {
+    localStorage.setItem('jwxt_ai_model', model);
+    // 同步 AI 页面的 select（如果存在）
+    const aiModelSel = document.getElementById('ai-model');
+    if (aiModelSel) aiModelSel.value = model;
+  } else if (provider === 'deepseek') {
+    localStorage.setItem('jwxt_deepseek_model', model);
+  }
+}
+function onAIPickerChange() {
+  const sel = document.getElementById('ai-picker');
+  const val = sel.value;
+  const idx = val.indexOf(':');
+  if (idx < 0) return;
+  const provider = val.slice(0, idx);
+  const model    = val.slice(idx + 1);
+  saveAIPickerChoice(provider, model);
+  updateAIPickerStatus();
+  // 让 OCR 引擎提示也跟着变
+  if (typeof updateOcrEngineHint === 'function') updateOcrEngineHint();
+}
+function updateAIPickerStatus() {
+  const ai = getActiveAI();
+  const st = document.getElementById('ai-picker-status');
+  if (!st) return;
+  if (ai.provider === 'deepseek') {
+    st.textContent = '云端 DeepSeek · ' + ai.model + (ai.apiKey ? '' : ' · 未配置 Key!');
+    st.className = 'ai-picker-status' + (ai.apiKey ? ' ok' : ' err');
+  } else {
+    st.textContent = '本地 Ollama · ' + ai.model + ' @ ' + ai.endpoint;
+    st.className = 'ai-picker-status';
   }
 }
 async function aiGenComment() {
@@ -1393,17 +1667,20 @@ function isMultimodalModel(modelName) {
   return /^gemma4/i.test(modelName);
 }
 function updateOcrEngineHint() {
-  const model = document.getElementById('ai-model')?.value || '';
+  const ai = getActiveAI();
   const info = document.getElementById('ocr-engine-info');
   if (!info) return;
-  if (isMultimodalModel(model)) {
+  if (ai.provider === 'ollama' && isMultimodalModel(ai.model)) {
     info.textContent = '✨ Gemma 4 视觉直读（最优）';
     info.className = 'form-control-plaintext fw-bold text-success';
-  } else if (model) {
-    info.textContent = '📷 PaddleOCR → ' + model + ' 文本';
+  } else if (ai.provider === 'deepseek') {
+    info.textContent = '📷 PaddleOCR → DeepSeek 文本（云端，无视觉）';
+    info.className = 'form-control-plaintext fw-bold text-primary';
+  } else if (ai.model) {
+    info.textContent = '📷 PaddleOCR → ' + ai.model + ' 文本';
     info.className = 'form-control-plaintext fw-bold text-primary';
   } else {
-    info.textContent = '— 请先在 AI 助手页选模型 —';
+    info.textContent = '— 请先在首页选择 AI 模型 —';
     info.className = 'form-control-plaintext fw-bold text-muted';
   }
 }
@@ -1528,13 +1805,15 @@ async function ocrRecognize() {
   }
 }
 
-// 给 Ollama 发图片（用于 Gemma 4）
+// 给 AI 发图片（仅 Ollama 多模态模型支持，DeepSeek 文本模型暂不支持）
 async function ollamaChatWithImage(prompt, imagesB64, onChunk) {
-  const host = document.getElementById('ai-host').value.replace(/\/$/, '');
-  const model = document.getElementById('ai-model').value;
-  const res = await fetch(host + '/api/generate', {
+  const ai = getActiveAI();
+  if (ai.provider !== 'ollama') {
+    throw new Error('当前 AI（' + ai.provider + '）不支持图像识别。请切到 Ollama Gemma 4 多模态模型');
+  }
+  const res = await fetch(ai.endpoint + '/api/generate', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ model, prompt, images: imagesB64, stream:true })
+    body: JSON.stringify({ model: ai.model, prompt, images: imagesB64, stream:true })
   });
   if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + (await res.text()).slice(0,100));
   const reader = res.body.getReader();
@@ -2055,6 +2334,8 @@ loadDB();
 renderDashboard();
 initMagnetCards();
 refreshClassOptions();
+loadDeepSeekSettings();
+populateAIPicker();
 // 默认日期为今天
 document.getElementById('att-date').value = new Date().toISOString().slice(0,10);
 </script>
