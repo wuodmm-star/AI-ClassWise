@@ -119,11 +119,26 @@
   .form-label { font-size:13px; font-weight:500; color:var(--text-sub); margin-bottom:5px; }
 
   /* === Tables === */
-  .table { color:var(--text); font-size:14px; }
+  .table {
+    color:var(--text);
+    font-size:14px;
+    /* 让 Bootstrap 的表格颜色变量跟随主题 */
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--text);
+    --bs-table-border-color: var(--border);
+    --bs-table-striped-bg: var(--bg-stripe);
+    --bs-table-striped-color: var(--text);
+    --bs-table-hover-bg: var(--bg-hover);
+    --bs-table-hover-color: var(--text);
+    --bs-table-active-bg: var(--bg-hover);
+    --bs-table-active-color: var(--text);
+  }
   .table th { background:transparent; font-weight:600; color:var(--text-muted); font-size:12px; text-transform:uppercase; letter-spacing:0.04em; border-color:var(--border); padding:10px 12px; }
-  .table td { border-color:var(--border); padding:12px; }
+  .table td { border-color:var(--border); padding:12px; background:transparent; color:var(--text); }
+  .table > :not(caption) > * > * { background-color:transparent; color:var(--text); box-shadow:none; }
   .table-striped > tbody > tr:nth-of-type(odd) > * { background:var(--bg-stripe); color:var(--text); }
   .table-hover > tbody > tr:hover > * { background:var(--bg-hover); color:var(--text); }
+  .table-bordered { --bs-table-border-color: var(--border); }
 
   /* === Modals === */
   .modal-content { background:var(--bg-card-solid); color:var(--text); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); }
@@ -209,6 +224,101 @@
     .main-content { padding:18px; }
     .page-title { font-size:24px; }
   }
+
+  /* === Magnet cards (homepage) === */
+  .magnet-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; margin-top:24px; perspective:1200px; }
+  @media (max-width: 1200px) { .magnet-grid { grid-template-columns:repeat(2, 1fr); } }
+  @media (max-width: 576px)  { .magnet-grid { grid-template-columns:1fr; } }
+
+  .magnet-card {
+    --card-rgb: 0,113,227;
+    --mx: 50%;
+    --my: 50%;
+    position:relative;
+    padding:30px 26px 64px;
+    border-radius:20px;
+    background:var(--bg-card-solid);
+    border:1px solid var(--border);
+    cursor:pointer;
+    overflow:hidden;
+    transform-style:preserve-3d;
+    transition:transform .45s cubic-bezier(.22,.61,.36,1), box-shadow .45s ease, border-color .35s ease;
+    will-change:transform;
+    min-height:200px;
+  }
+  /* 光晕跟随鼠标 */
+  .magnet-card::before {
+    content:'';
+    position:absolute; inset:0;
+    border-radius:20px;
+    background:radial-gradient(circle 260px at var(--mx) var(--my), rgba(var(--card-rgb), 0.26), transparent 60%);
+    opacity:0;
+    transition:opacity .35s ease;
+    pointer-events:none;
+    z-index:1;
+  }
+  /* 顶部高光扫光 */
+  .magnet-card::after {
+    content:'';
+    position:absolute;
+    top:0; left:-60%;
+    width:60%; height:100%;
+    background:linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.08) 50%, transparent 65%);
+    transform:skewX(-20deg) translateX(0);
+    transition:transform .9s cubic-bezier(.22,.61,.36,1);
+    pointer-events:none;
+    z-index:2;
+  }
+  .magnet-card:hover { box-shadow:0 28px 70px -22px rgba(var(--card-rgb),0.45); border-color:rgba(var(--card-rgb),0.55); }
+  .magnet-card:hover::before { opacity:1; }
+  .magnet-card:hover::after { transform:skewX(-20deg) translateX(360%); }
+  .magnet-card > * { position:relative; z-index:3; }
+
+  .magnet-icon {
+    font-size:46px;
+    line-height:1;
+    margin-bottom:18px;
+    display:inline-block;
+    transition:transform .4s cubic-bezier(.22,.61,.36,1);
+    transform:translateZ(0);
+  }
+  .magnet-card:hover .magnet-icon { transform:translateZ(40px) scale(1.12) rotate(-3deg); }
+
+  .magnet-title { font-size:18px; font-weight:650; color:var(--text); margin:0 0 6px; letter-spacing:-0.01em; }
+  .magnet-desc  { font-size:13px; color:var(--text-muted); margin:0; line-height:1.55; }
+
+  .magnet-meta {
+    position:absolute;
+    bottom:22px;
+    left:26px;
+    right:70px;
+    font-size:12px;
+    font-weight:600;
+    color:rgb(var(--card-rgb));
+    letter-spacing:0.02em;
+    opacity:0.9;
+    z-index:3;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .magnet-arrow {
+    position:absolute;
+    bottom:18px; right:18px;
+    width:36px; height:36px;
+    border-radius:50%;
+    background:rgba(var(--card-rgb),0.12);
+    color:rgb(var(--card-rgb));
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px; font-weight:600;
+    opacity:0;
+    transform:translateX(-10px);
+    transition:opacity .3s ease, transform .3s ease, background .3s ease;
+    z-index:3;
+  }
+  .magnet-card:hover .magnet-arrow { opacity:1; transform:translateX(0); background:rgba(var(--card-rgb),0.22); }
+
+  .dash-subtitle { font-size:13px; color:var(--text-muted); margin:0; }
 </style>
 </head>
 <body>
@@ -228,7 +338,7 @@
         <li class="nav-item"><a class="nav-link" data-page="grades">📊 成绩管理</a></li>
         <li class="nav-item"><a class="nav-link" data-page="attendance">📅 考勤记录</a></li>
         <li class="nav-item"><a class="nav-link" data-page="reports">📤 报表导出</a></li>
-        <li class="nav-item"><a class="nav-link" data-page="ai">🤖 AI 助手</a></li>
+        <li class="nav-item"><a class="nav-link" data-page="ai">AI 助手</a></li>
         <li class="nav-item"><a class="nav-link" data-page="ocr">📷 OCR 录入</a></li>
         <li class="nav-item"><a class="nav-link" data-page="settings">⚙️ 数据与设置</a></li>
       </ul>
@@ -240,7 +350,6 @@
       <!-- 全局 AI 命令栏（紧凑型） -->
       <div class="ai-bar">
         <div class="ai-bar-input-wrap">
-          <span class="ai-bar-icon">🤖</span>
           <input type="text" id="ai-bar-input" placeholder="问 AI 任何事... 例：谁数学最高？/ 给张明写评语" autocomplete="off">
           <button class="btn btn-sm btn-primary ai-bar-send" onclick="aiBarSubmit()" title="发送 (Enter)">
             <span id="ai-bar-send-text">▶</span>
@@ -258,131 +367,69 @@
 
       <!-- 首页 -->
       <section class="page active" id="page-dashboard">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h2 class="page-title mb-0">首页概览</h2>
+        <div class="d-flex justify-content-between align-items-end mb-1">
+          <h2 class="page-title mb-0">首页</h2>
           <small class="text-muted" id="dash-greeting">—</small>
         </div>
+        <p class="dash-subtitle">选一个功能开始 · 鼠标悬停查看动效</p>
 
-        <!-- 第一区：4 项核心指标 -->
-        <div class="row g-3 mb-4">
-          <div class="col-md-3"><div class="card stat-card h-100"><div class="stat-num" id="stat-students">0</div><div class="stat-label">学生总数</div></div></div>
-          <div class="col-md-3"><div class="card stat-card h-100"><div class="stat-num" id="stat-classes">0</div><div class="stat-label">班级数</div></div></div>
-          <div class="col-md-3"><div class="card stat-card h-100"><div class="stat-num" id="stat-grades">0</div><div class="stat-label">成绩条数</div></div></div>
-          <div class="col-md-3"><div class="card stat-card h-100"><div class="stat-num" id="stat-att">0</div><div class="stat-label">考勤记录</div></div></div>
+        <div class="magnet-grid">
+
+          <!-- 1. AI 对话数据录入 -->
+          <div class="magnet-card" data-page="ai" style="--card-rgb:139,92,246;">
+            <div class="magnet-icon">💬</div>
+            <h6 class="magnet-title">AI 对话数据录入</h6>
+            <p class="magnet-desc">自然语言对话，让 AI 帮你录入学生、成绩、考勤数据</p>
+            <span class="magnet-meta" id="meta-ai">AI 助手</span>
+            <div class="magnet-arrow">→</div>
+          </div>
+
+          <!-- 2. 学生管理 -->
+          <div class="magnet-card" data-page="students" style="--card-rgb:0,113,227;">
+            <div class="magnet-icon">👥</div>
+            <h6 class="magnet-title">学生管理</h6>
+            <p class="magnet-desc">添加学生、按班级筛选、批量编辑、姓名搜索</p>
+            <span class="magnet-meta"><span id="stat-students">0</span> 名学生 · <span id="stat-classes">0</span> 个班</span>
+            <div class="magnet-arrow">→</div>
+          </div>
+
+          <!-- 3. 成绩管理 -->
+          <div class="magnet-card" data-page="grades" style="--card-rgb:16,185,129;">
+            <div class="magnet-icon">📊</div>
+            <h6 class="magnet-title">成绩管理</h6>
+            <p class="magnet-desc">按学期录入分数，自动算总分、平均、班级排名</p>
+            <span class="magnet-meta"><span id="stat-grades">0</span> 条成绩</span>
+            <div class="magnet-arrow">→</div>
+          </div>
+
+          <!-- 4. 考勤管理 -->
+          <div class="magnet-card" data-page="attendance" style="--card-rgb:245,158,11;">
+            <div class="magnet-icon">📅</div>
+            <h6 class="magnet-title">考勤管理</h6>
+            <p class="magnet-desc">点状态按钮循环切换：出勤 → 缺勤 → 请假 → 迟到</p>
+            <span class="magnet-meta"><span id="stat-att">0</span> 条记录</span>
+            <div class="magnet-arrow">→</div>
+          </div>
+
+          <!-- 5. 数据管理 -->
+          <div class="magnet-card" data-page="settings" style="--card-rgb:239,68,68;">
+            <div class="magnet-icon">💾</div>
+            <h6 class="magnet-title">数据管理</h6>
+            <p class="magnet-desc">JSON 导入导出、Excel 报表、清空与备份</p>
+            <span class="magnet-meta" id="meta-backup">建议每周备份</span>
+            <div class="magnet-arrow">→</div>
+          </div>
+
+          <!-- 6. 拍照录入 -->
+          <div class="magnet-card" data-page="ocr" style="--card-rgb:6,182,212;">
+            <div class="magnet-icon">📷</div>
+            <h6 class="magnet-title">拍照录入</h6>
+            <p class="magnet-desc">拍照识别名单、成绩单、考勤表，自动转结构化数据</p>
+            <span class="magnet-meta" id="meta-ocr">PaddleOCR 待命</span>
+            <div class="magnet-arrow">→</div>
+          </div>
+
         </div>
-
-        <!-- 第二区：快捷功能 -->
-        <h6 class="text-muted mb-2 mt-2">🚀 快捷功能</h6>
-        <div class="row g-3 mb-4">
-          <div class="col-md-4 col-sm-6">
-            <div class="card action-card h-100" onclick="goPage(\'students\')">
-              <div class="card-body">
-                <div class="action-icon">👥</div>
-                <h6 class="action-title">学生管理</h6>
-                <p class="action-desc">添加学生、按班级筛选、批量编辑</p>
-                <span class="action-arrow">进入 →</span>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-4 col-sm-6">
-            <div class="card action-card h-100" onclick="goPage(\'grades\')">
-              <div class="card-body">
-                <div class="action-icon">📊</div>
-                <h6 class="action-title">成绩管理</h6>
-                <p class="action-desc">按学期录入，自动算排名总分</p>
-                <span class="action-arrow">进入 →</span>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-4 col-sm-6">
-            <div class="card action-card h-100" onclick="goPage(\'attendance\')">
-              <div class="card-body">
-                <div class="action-icon">📅</div>
-                <h6 class="action-title">考勤记录</h6>
-                <p class="action-desc">点按钮循环：出勤→缺勤→请假→迟到</p>
-                <span class="action-arrow">进入 →</span>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-4 col-sm-6">
-            <div class="card action-card h-100" onclick="goPage(\'ai\')">
-              <div class="card-body">
-                <div class="action-icon">🤖</div>
-                <h6 class="action-title">AI 助手</h6>
-                <p class="action-desc">评语、班级总结、自然语言问答</p>
-                <span class="action-arrow">进入 →</span>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-4 col-sm-6">
-            <div class="card action-card h-100" onclick="goPage(\'ocr\')">
-              <div class="card-body">
-                <div class="action-icon">📷</div>
-                <h6 class="action-title">OCR 录入</h6>
-                <p class="action-desc">拍照识别名单、成绩单</p>
-                <span class="action-arrow">进入 →</span>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-4 col-sm-6">
-            <div class="card action-card h-100" onclick="goPage(\'reports\')">
-              <div class="card-body">
-                <div class="action-icon">📤</div>
-                <h6 class="action-title">报表导出</h6>
-                <p class="action-desc">一键导出三张 Excel 报表</p>
-                <span class="action-arrow">进入 →</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 第三区：系统状态 -->
-        <h6 class="text-muted mb-2 mt-2">🔧 系统状态</h6>
-        <div class="row g-3">
-          <div class="col-md-4">
-            <div class="card status-card h-100">
-              <div class="card-body">
-                <div class="d-flex align-items-center">
-                  <div class="status-dot" id="dash-dot-ollama"></div>
-                  <div class="ms-2 flex-grow-1">
-                    <div class="status-title">AI 引擎 (Ollama)</div>
-                    <div class="status-sub" id="dash-ollama-info">检测中...</div>
-                  </div>
-                  <button class="btn btn-sm btn-outline-primary" onclick="goPage(\'ai\')">配置</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="card status-card h-100">
-              <div class="card-body">
-                <div class="d-flex align-items-center">
-                  <div class="status-dot" id="dash-dot-ocr"></div>
-                  <div class="ms-2 flex-grow-1">
-                    <div class="status-title">OCR 引擎</div>
-                    <div class="status-sub" id="dash-ocr-info">未加载（按需启动）</div>
-                  </div>
-                  <button class="btn btn-sm btn-outline-primary" onclick="goPage(\'ocr\')">使用</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="card status-card h-100">
-              <div class="card-body">
-                <div class="d-flex align-items-center">
-                  <div class="status-dot" id="dash-dot-backup"></div>
-                  <div class="ms-2 flex-grow-1">
-                    <div class="status-title">数据备份</div>
-                    <div class="status-sub" id="dash-backup-info">建议每周导出一次</div>
-                  </div>
-                  <button class="btn btn-sm btn-outline-primary" onclick="goPage(\'settings\')">备份</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
       </section>
 
       <!-- 学生管理 -->
@@ -638,7 +685,7 @@
         </div>
 
         <div class="card p-3">
-          <h6>🤖 把识别结果交给 AI 处理</h6>
+          <h6>把识别结果交给 AI 处理</h6>
           <div class="row g-2">
             <div class="col-md-4">
               <button class="btn btn-success w-100" onclick="ocrToStudents()">📋 解析为学生名单</button>
@@ -825,12 +872,44 @@ document.querySelectorAll('#mainNav .nav-link').forEach(a => {
   });
 });
 
+/* ==================== 磁力卡片：3D 倾斜 + 光晕跟随 + 点击跳页 ==================== */
+function initMagnetCards() {
+  const MAX_TILT = 8;          // 最大倾斜角度
+  const LIFT_Z   = 12;          // 卡片整体抬起量
+  document.querySelectorAll('.magnet-card').forEach(card => {
+    if (card.dataset.magnetBound) return;
+    card.dataset.magnetBound = '1';
+
+    card.addEventListener('mousemove', e => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const cx = rect.width  / 2;
+      const cy = rect.height / 2;
+      const rx = ((y - cy) / cy) * -MAX_TILT;
+      const ry = ((x - cx) / cx) *  MAX_TILT;
+      card.style.setProperty('--mx', x + 'px');
+      card.style.setProperty('--my', y + 'px');
+      card.style.transform = `perspective(900px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg) translateZ(${LIFT_Z}px)`;
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = '';
+      card.style.setProperty('--mx', '50%');
+      card.style.setProperty('--my', '50%');
+    });
+    card.addEventListener('click', () => {
+      const page = card.dataset.page;
+      if (page && typeof goPage === 'function') goPage(page);
+    });
+  });
+}
+
 /* ==================== 首页 ==================== */
 function renderDashboard() {
-  document.getElementById('stat-students').textContent = DB.students.length;
-  document.getElementById('stat-classes').textContent = new Set(DB.students.map(s=>s.class)).size;
-  document.getElementById('stat-grades').textContent = DB.grades.length;
-  document.getElementById('stat-att').textContent = DB.attendance.length;
+  const ss = document.getElementById('stat-students'); if (ss) ss.textContent = DB.students.length;
+  const sc = document.getElementById('stat-classes');  if (sc) sc.textContent = new Set(DB.students.map(s=>s.class)).size;
+  const sg = document.getElementById('stat-grades');   if (sg) sg.textContent = DB.grades.length;
+  const sa = document.getElementById('stat-att');      if (sa) sa.textContent = DB.attendance.length;
 }
 
 /* ==================== 班级下拉同步 ==================== */
@@ -1813,7 +1892,7 @@ async function aiBarSubmit() {
     statusEl.textContent = '✅ AI 回答：';
   } catch(e) {
     statusEl.textContent = '❌ 失败';
-    outputBody.textContent = '调用失败：' + e.message + '\n\n请先在「🤖 AI 助手」页测试连接，确保 Ollama 已启动。';
+    outputBody.textContent = '调用失败：' + e.message + '\n\n请先在「AI 助手」页测试连接，确保 Ollama 已启动。';
   } finally {
     sendText.style.display = 'inline';
     sendLoad.style.display = 'none';
@@ -1842,42 +1921,33 @@ function updateDashGreeting() {
   el.textContent = `${greet}，${today}`;
 }
 async function updateDashStatus() {
+  // 写入磁力卡片底部 meta 文字（找不到元素就静默跳过，保持向后兼容）
+  const setMeta = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+
   // Ollama 状态
   try {
     const host = (document.getElementById('ai-host')?.value || 'http://localhost:11434').replace(/\/$/, '');
     const res = await fetch(host + '/api/tags', { signal: AbortSignal.timeout(2000) });
     const data = await res.json();
     const cnt = (data.models||[]).length;
-    document.getElementById('dash-dot-ollama').className = 'status-dot ok';
-    document.getElementById('dash-ollama-info').textContent = `已连接，${cnt} 个模型可用`;
+    setMeta('meta-ai', `已连接 · ${cnt} 个模型`);
   } catch(e) {
-    document.getElementById('dash-dot-ollama').className = 'status-dot err';
-    document.getElementById('dash-ollama-info').textContent = '未连接（点配置去 AI 助手页）';
+    setMeta('meta-ai', '未连接 · 点进入配置');
   }
   // OCR 状态
   const ortReady = typeof window.ort !== 'undefined';
-  const pdReady = typeof window.PaddleBundle !== 'undefined';
-  const ocrEl = document.getElementById('dash-dot-ocr');
-  const ocrInfo = document.getElementById('dash-ocr-info');
-  if (ortReady && pdReady) {
-    ocrEl.className = 'status-dot ok';
-    ocrInfo.textContent = '已就绪（PaddleOCR 可用）';
-  } else {
-    ocrEl.className = 'status-dot warn';
-    ocrInfo.textContent = '资源未就绪（请通过 start.bat 启动）';
-  }
+  const pdReady  = typeof window.PaddleBundle !== 'undefined';
+  setMeta('meta-ocr', (ortReady && pdReady) ? 'PaddleOCR 已就绪' : 'OCR 资源未就绪');
+
   // 备份状态
   const last = localStorage.getItem('jwxt_last_backup');
-  const el = document.getElementById('dash-dot-backup');
-  const info = document.getElementById('dash-backup-info');
   if (last) {
     const days = Math.floor((Date.now() - Number(last)) / 86400000);
-    if (days < 7) { el.className = 'status-dot ok'; info.textContent = `${days} 天前已备份`; }
-    else if (days < 30) { el.className = 'status-dot warn'; info.textContent = `${days} 天未备份，建议导出`; }
-    else { el.className = 'status-dot err'; info.textContent = `超过 ${days} 天未备份！`; }
+    if (days < 7)       setMeta('meta-backup', `${days} 天前已备份`);
+    else if (days < 30) setMeta('meta-backup', `${days} 天未备份，建议导出`);
+    else                setMeta('meta-backup', `超过 ${days} 天未备份！`);
   } else {
-    el.className = 'status-dot warn';
-    info.textContent = '尚未备份过，建议每周一次';
+    setMeta('meta-backup', '尚未备份，建议每周一次');
   }
 }
 // 让首页加载时执行
@@ -1916,6 +1986,7 @@ applyTheme(localStorage.getItem('jwxt_theme') || 'light');
 
 loadDB();
 renderDashboard();
+initMagnetCards();
 refreshClassOptions();
 // 默认日期为今天
 document.getElementById('att-date').value = new Date().toISOString().slice(0,10);

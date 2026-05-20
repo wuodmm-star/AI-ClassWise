@@ -57,7 +57,7 @@ AI-ClassWise/
 | 存储 | 浏览器 localStorage + JSON 导入导出 |
 | 服务器 | PowerShell HttpListener（约 100 行） |
 
-## 🤖 推荐 AI 模型
+## 推荐 AI 模型
 
 | 电脑配置 | 模型 | 命令 |
 |---------|------|------|
