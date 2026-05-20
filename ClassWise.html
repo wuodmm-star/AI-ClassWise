@@ -465,6 +465,78 @@
   }
   .aichat-confirm-btn:hover { background:#0ea870; }
   .aichat-confirm-btn:disabled { background:var(--text-muted); cursor:default; }
+
+  /* === Global AI 浮动按钮 + 右侧抽屉 === */
+  .gai-fab {
+    position:fixed; right:24px; bottom:24px; z-index:1040;
+    width:56px; height:56px;
+    border-radius:50%;
+    background:linear-gradient(135deg, #8b5cf6, #06b6d4);
+    color:#fff;
+    border:none;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 8px 24px -6px rgba(139,92,246,0.5);
+    cursor:pointer;
+    transition:transform .25s var(--transition), box-shadow .25s ease;
+  }
+  .gai-fab:hover { transform:translateY(-3px) scale(1.05); box-shadow:0 14px 36px -8px rgba(139,92,246,0.65); }
+  .gai-fab svg { width:24px; height:24px; stroke-width:2; }
+
+  .gai-panel {
+    position:fixed; right:0; top:0; bottom:0;
+    width:380px; max-width:90vw;
+    background:var(--bg-card-solid);
+    border-left:1px solid var(--border);
+    box-shadow:-10px 0 40px -10px rgba(0,0,0,0.25);
+    z-index:1050;
+    display:flex; flex-direction:column;
+    transform:translateX(100%);
+    transition:transform .35s cubic-bezier(.22,.61,.36,1);
+  }
+  .gai-panel.open { transform:translateX(0); }
+  .gai-head {
+    display:flex; align-items:center; gap:10px;
+    padding:14px 18px;
+    border-bottom:1px solid var(--border);
+  }
+  .gai-head-icon { width:30px; height:30px; border-radius:8px; background:linear-gradient(135deg,#8b5cf6,#06b6d4); display:flex; align-items:center; justify-content:center; }
+  .gai-head-icon svg { width:16px; height:16px; color:#fff; stroke-width:2; }
+  .gai-head-text { flex:1; }
+  .gai-head-text h6 { margin:0; font-size:15px; font-weight:650; color:var(--text); }
+  .gai-head-text small { font-size:11px; color:var(--text-muted); }
+  .gai-close-btn { background:transparent; border:none; color:var(--text-muted); cursor:pointer; padding:6px; border-radius:6px; transition:background .2s; }
+  .gai-close-btn:hover { background:var(--bg-hover); }
+  .gai-body { flex:1; overflow-y:auto; padding:14px; }
+  .gai-foot {
+    border-top:1px solid var(--border);
+    padding:10px;
+    display:flex; gap:8px; align-items:flex-end;
+  }
+  .gai-foot textarea {
+    flex:1; resize:none;
+    border:1px solid var(--border);
+    background:var(--bg-hover);
+    color:var(--text);
+    border-radius:10px;
+    padding:8px 12px;
+    font-size:14px;
+    font-family:inherit;
+    min-height:40px; max-height:120px;
+    outline:none;
+  }
+  .gai-foot textarea:focus { border-color:var(--accent); background:var(--bg-card-solid); }
+  .gai-foot button { padding:8px 14px; border-radius:10px; }
+  .gai-jump-link { font-size:11px; color:var(--accent); text-decoration:none; padding:4px 8px; border-radius:6px; }
+  .gai-jump-link:hover { background:var(--accent-soft); }
+
+  .gai-backdrop {
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.3);
+    z-index:1045;
+    opacity:0; pointer-events:none;
+    transition:opacity .3s;
+  }
+  .gai-backdrop.show { opacity:1; pointer-events:auto; }
 </style>
 </head>
 <body>
@@ -790,7 +862,12 @@
           </div>
         </div>
 
+        <div id="aichat-att-area"></div>
         <div class="aichat-input-wrap">
+          <input type="file" id="aichat-file" accept=".xlsx,.xls,.csv,.docx,.pdf,.txt,image/*" hidden onchange="aiChatHandleFile(this)">
+          <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('aichat-file').click()" title="上传文件（Excel / Word / PDF / 图片）" style="padding:10px 12px;align-self:stretch;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          </button>
           <textarea id="aichat-input" placeholder="说点什么…（Enter 发送，Shift+Enter 换行）" rows="2"></textarea>
           <button class="btn btn-primary" onclick="aiChatSend()" id="aichat-send-btn" style="padding:10px 20px;align-self:stretch;">
             <span id="aichat-send-text">发送</span>
@@ -1030,6 +1107,17 @@
         <div class="mb-2"><label class="form-label">班级</label><input class="form-control" id="stu-class" placeholder="例如：高一(3)班" required></div>
         <div class="mb-2"><label class="form-label">性别</label><select class="form-select" id="stu-gender"><option>男</option><option>女</option></select></div>
         <div class="mb-2"><label class="form-label">联系方式</label><input class="form-control" id="stu-contact" placeholder="家长电话"></div>
+
+        <!-- 额外字段（extras） + 笔记（notes）—— 编辑模式下显示 -->
+        <div id="stu-extras-section" style="display:none;">
+          <hr>
+          <label class="form-label" style="font-size:13px;color:var(--text-muted);">额外信息（AI 对话录入填的自由字段）</label>
+          <div id="stu-extras-list" style="font-size:13px;background:var(--bg-stripe);padding:8px 12px;border-radius:8px;margin-bottom:12px;">—</div>
+        </div>
+        <div id="stu-notes-section" style="display:none;">
+          <label class="form-label" style="font-size:13px;color:var(--text-muted);">📝 记录时间线</label>
+          <div id="stu-notes-list" style="font-size:13px;max-height:200px;overflow-y:auto;"></div>
+        </div>
       </div>
       <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button class="btn btn-primary" onclick="saveStudent()">保存</button></div>
     </div>
@@ -1221,6 +1309,8 @@ function openStudentModal() {
   document.getElementById('stuModalTitle').textContent = '添加学生';
   ['stu-id','stu-no','stu-name','stu-class','stu-contact'].forEach(i=>document.getElementById(i).value='');
   document.getElementById('stu-gender').value = '男';
+  document.getElementById('stu-extras-section').style.display = 'none';
+  document.getElementById('stu-notes-section').style.display = 'none';
   new bootstrap.Modal('#studentModal').show();
 }
 function editStudent(id) {
@@ -1232,7 +1322,43 @@ function editStudent(id) {
   document.getElementById('stu-class').value = s.class;
   document.getElementById('stu-gender').value = s.gender;
   document.getElementById('stu-contact').value = s.contact || '';
+
+  // 渲染 extras
+  const exSec = document.getElementById('stu-extras-section');
+  const exList = document.getElementById('stu-extras-list');
+  if (s.extras && Object.keys(s.extras).length) {
+    exList.innerHTML = Object.entries(s.extras).map(([k,v]) => `<div style="display:inline-block;margin:2px 4px;padding:2px 8px;background:rgba(139,92,246,0.12);color:#8b5cf6;border-radius:6px;"><b>${_escapeHtml(k)}</b>: ${_escapeHtml(v)}</div>`).join('');
+    exSec.style.display = '';
+  } else {
+    exSec.style.display = 'none';
+  }
+
+  // 渲染 notes 时间线
+  const noteSec = document.getElementById('stu-notes-section');
+  const noteList = document.getElementById('stu-notes-list');
+  if (s.notes && s.notes.length) {
+    noteList.innerHTML = s.notes.slice().reverse().map(n => `
+      <div style="padding:8px 10px;margin-bottom:6px;background:var(--bg-stripe);border-left:3px solid #a855f7;border-radius:6px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <small style="color:var(--text-muted);">${_escapeHtml(n.date || '')}${n.tags?.length ? ' · '+n.tags.map(t=>'#'+_escapeHtml(t)).join(' ') : ''}</small>
+          <button class="btn btn-sm btn-link p-0" style="font-size:13px;color:#ef4444;text-decoration:none;" onclick="delStudentNote('${s.id}','${n.id}')">✕</button>
+        </div>
+        <div style="margin-top:4px;">${_escapeHtml(n.content || '')}</div>
+      </div>
+    `).join('');
+    noteSec.style.display = '';
+  } else {
+    noteSec.style.display = 'none';
+  }
+
   new bootstrap.Modal('#studentModal').show();
+}
+function delStudentNote(stuId, noteId) {
+  if (!confirm('删除这条记录？')) return;
+  const s = DB.students.find(x=>x.id===stuId); if (!s || !s.notes) return;
+  s.notes = s.notes.filter(n => n.id !== noteId);
+  saveDB();
+  editStudent(stuId);  // 重新渲染弹窗
 }
 function saveStudent() {
   const id = document.getElementById('stu-id').value;
@@ -1244,8 +1370,13 @@ function saveStudent() {
     contact: document.getElementById('stu-contact').value.trim()
   };
   if (!data.no || !data.name || !data.class) { alert('学号、姓名、班级为必填项'); return; }
-  if (id) Object.assign(DB.students.find(x=>x.id===id), data);
-  else DB.students.push({ id: uid(), ...data });
+  if (id) {
+    // 只更新基础字段，保留 extras 和 notes
+    const s = DB.students.find(x=>x.id===id);
+    if (s) Object.assign(s, data);
+  } else {
+    DB.students.push({ id: uid(), ...data });
+  }
   saveDB();
   bootstrap.Modal.getInstance(document.getElementById('studentModal')).hide();
   refreshClassOptions(); renderStudents();
@@ -1758,43 +1889,175 @@ document.addEventListener('keydown', e => {
   aiChatSend();
 });
 
+/* === AI 对话录入：支持 8 种操作 + 文件附件 + 反问机制 === */
+
+// 动态加载脚本（Word/PDF 解析器按需引入）
+function _loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if ([...document.scripts].some(s => s.src === src)) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = () => reject(new Error('加载失败: ' + src));
+    document.head.appendChild(s);
+  });
+}
+
+async function aiChatHandleFile(input) {
+  const f = input.files[0];
+  if (!f) return;
+  input.value = '';   // 清空，便于重选同一文件
+
+  const ext = (f.name.split('.').pop() || '').toLowerCase();
+  const area = document.getElementById('aichat-att-area');
+  area.innerHTML = `<div id="aichat-att-chip" style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg-hover);border-radius:10px;font-size:13px;margin-bottom:8px;">⏳ 解析 ${_escapeHtml(f.name)}…</div>`;
+
+  try {
+    let text = '';
+    if (['xlsx','xls','csv'].includes(ext)) {
+      text = await _parseExcel(f);
+    } else if (['png','jpg','jpeg','webp','bmp','gif'].includes(ext) || f.type.startsWith('image/')) {
+      text = await _parseImage(f);
+    } else if (ext === 'docx') {
+      text = await _parseDocx(f);
+    } else if (ext === 'pdf') {
+      text = await _parsePdf(f);
+    } else if (ext === 'txt') {
+      text = await f.text();
+    } else {
+      throw new Error('不支持的文件类型 .' + ext);
+    }
+    _aichatAttachment = { name: f.name, kind: ext, text: text.trim() };
+    area.innerHTML = `<div id="aichat-att-chip" style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);border-radius:10px;font-size:13px;margin-bottom:8px;">📎 ${_escapeHtml(f.name)} · ${text.length} 字符 <button class="btn btn-sm btn-link p-0 ms-2" style="font-size:14px;color:inherit;text-decoration:none;" onclick="aiChatClearAttachment()" title="移除">✕</button></div>`;
+  } catch(e) {
+    area.innerHTML = `<div id="aichat-att-chip" style="display:inline-flex;align-items:center;gap:8px;padding:6px 12px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);border-radius:10px;font-size:13px;margin-bottom:8px;color:#dc2626;">⚠️ ${_escapeHtml(f.name)}: ${_escapeHtml(e.message)} <button class="btn btn-sm btn-link p-0 ms-2" style="font-size:14px;color:inherit;text-decoration:none;" onclick="aiChatClearAttachment()">✕</button></div>`;
+  }
+}
+
+function aiChatClearAttachment() {
+  _aichatAttachment = null;
+  document.getElementById('aichat-att-area').innerHTML = '';
+}
+
+// 解析器们 —— 每种返回纯文本字符串
+
+async function _parseExcel(file) {
+  if (typeof XLSX === 'undefined') throw new Error('XLSX 库未加载');
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type:'array' });
+  let out = '';
+  wb.SheetNames.forEach(sn => {
+    const sheet = wb.Sheets[sn];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header:1, defval:'' });
+    out += `=== Sheet: ${sn} ===\n`;
+    rows.forEach(r => { out += r.join('\t') + '\n'; });
+    out += '\n';
+  });
+  return out;
+}
+
+async function _parseImage(file) {
+  // 优先走当前活动 AI 的多模态（仅 Gemma 4）；否则 PaddleOCR；都没有就报错
+  const ai = getActiveAI();
+  if (ai.provider === 'ollama' && isMultimodalModel(ai.model)) {
+    const dataUrl = await fileToDataURL(file);
+    const b64 = dataUrl.split(',')[1];
+    let text = '';
+    await ollamaChatWithImage('请把这张图片里所有文字一字不漏地按布局提取出来，不要解释、不要润色。', [b64], t => text = t);
+    return text;
+  }
+  // PaddleOCR 回退
+  if (typeof ensurePaddleOcr === 'function') {
+    const svc = await ensurePaddleOcr();
+    const buf = await fileToArrayBuffer(file);
+    const result = await svc.recognize(buf);
+    return result.text || '';
+  }
+  throw new Error('图像识别不可用（未启动 OCR 资源）');
+}
+
+async function _parseDocx(file) {
+  await _loadScript('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js');
+  if (typeof mammoth === 'undefined') throw new Error('mammoth.js 加载失败');
+  const buf = await file.arrayBuffer();
+  const r = await mammoth.extractRawText({ arrayBuffer: buf });
+  return r.value;
+}
+
+async function _parsePdf(file) {
+  await _loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+  if (typeof pdfjsLib === 'undefined') throw new Error('pdf.js 加载失败');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  let out = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    out += `=== 第 ${i} 页 ===\n` + content.items.map(it => it.str).join(' ') + '\n\n';
+  }
+  return out;
+}
+
+let _aichatAttachment = null;        // { name, kind, text }  当前待发送的附件
+let _aichatPendingId = 0;
+const _aichatPending = {};
+
 async function aiChatSend() {
   const input = document.getElementById('aichat-input');
   const btn = document.getElementById('aichat-send-btn');
   const btnText = document.getElementById('aichat-send-text');
   const text = input.value.trim();
-  if (!text) return;
+  const att  = _aichatAttachment;
+  if (!text && !att) return;
+
+  // 用户消息泡（含附件名）
+  let userBubble = text;
+  if (att) userBubble += (text ? '\n\n' : '') + `📎 附件：${att.name}（${att.text.length} 字符已解析）`;
+  aiChatAppend('user', userBubble);
   input.value = '';
-  aiChatAppend('user', text);
+  _aichatAttachment = null;
+  document.getElementById('aichat-att-chip')?.remove();
 
   btn.disabled = true; btnText.textContent = '解析中…';
 
-  // 给 AI 必要上下文：今天日期、当前学期、考试类型、学生姓名表（避免幻觉）
   const today = new Date().toISOString().slice(0,10);
   const term  = document.getElementById('grade-term')?.value || '2025-2026上';
   const exam  = document.getElementById('grade-exam')?.value || '期末';
-  const names = DB.students.map(s => s.name).slice(0, 80).join('、') || '（数据库为空）';
+  const names = DB.students.map(s => s.name).slice(0, 120).join('、') || '（数据库为空，老师可能要先建学生）';
 
-  const prompt = `你是教务数据助手，必须输出严格的 JSON，不要 markdown、不要任何解释文字。
+  const fileBlock = att ? `\n\n用户上传了文件「${att.name}」，内容如下（已自动提取为文本）：\n---FILE_START---\n${att.text.slice(0, 6000)}\n---FILE_END---\n` : '';
 
-支持三种操作类型：
-- add_student：新增学生。data 字段：{"no":"学号","name":"姓名","class":"班级","gender":"男/女","contact":"联系方式可空"}
-- add_grade：录入成绩。data 字段：{"name":"学生姓名","subject":"科目","score":数字,"term":"学期","examType":"考试类型"}
-- add_attendance：录入考勤。data 字段：{"name":"学生姓名","date":"YYYY-MM-DD","status":"出勤/缺勤/请假/迟到"}
+  const prompt = `你是教务数据助手。任务：把用户口语描述（或上传的文件）解析为结构化操作 JSON。
+
+可用操作类型（按需选用，单条输入可拆多个 operations）：
+1. add_student      新增学生   data: {no, name, class, gender:"男"|"女", contact, extras?:{自由字段}}
+2. add_grade        录入成绩   data: {name, subject, score:数字, term, examType, extras?:{}}
+3. add_attendance   录入考勤   data: {name, date:"YYYY-MM-DD", status:"出勤"|"缺勤"|"请假"|"迟到", extras?:{}}
+4. add_note         自由笔记   data: {name, content:"事件内容", tags:[标签数组], date}    用于评语、奖项、特长、家长沟通等任何不属于上面三种的事情
+5. update_student   修改学生   data: {name, changes:{要改的字段}}
+6. update_grade     修改成绩   data: {name, subject, term, examType, changes:{score?}}
+7. update_attendance 修改考勤  data: {name, date, changes:{status?}}
+8. query            纯查询     data: {question, answer:"你直接回答的内容"}   只读，不写库
+
+灵活规则：
+- 标准字段不够用时，把额外信息放到 extras。例如老师说"张三特长是钢琴"，应该 add_student 或 update_student 的 extras 加 {"特长":"钢琴"}
+- 评语、奖项、家长会、心理疏导这种事件类信息一律走 add_note
+- 表格上传时，根据表头判断录入类型（含"分"或"成绩"用 add_grade；含"出勤"用 add_attendance；否则 add_student）
+- 名字必须从已有学生列表里找；找不到就用 add_student 先建
 
 上下文：
 - 今天：${today}
 - 默认学期：${term}
 - 默认考试类型：${exam}
-- 已有学生姓名（成绩/考勤的 name 必须从中选）：${names}
+- 已有学生姓名（成绩/考勤/笔记的 name 必须从中匹配）：${names}${fileBlock}
 
-输出格式（严格）：
-{"operations":[{"type":"add_student","data":{...}},...],"explanation":"一句话中文说明"}
+输出（严格 JSON，无 markdown 无解释）：
+{
+  "operations": [{"type":"...","data":{...}}],
+  "explanation": "中文一句话说明",
+  "clarify": "如果信息不全，在这里反问老师（否则留空字符串）"
+}
 
-如果用户一句话里有多个学生/多科目，要拆成多个 operations。
-如果无法解析或缺关键字段，operations 留空数组，在 explanation 里说明缺什么。
-
-老师输入："${text}"
+老师输入："${text || '(无文字，请根据上传的文件推断要做什么)'}"
 
 JSON：`;
 
@@ -1803,9 +2066,9 @@ JSON：`;
 
   let response = '';
   try {
-    response = await ollamaChat(prompt, t => { bubble.textContent = t.slice(0, 200) + (t.length > 200 ? '…' : ''); });
+    response = await ollamaChat(prompt, t => { bubble.textContent = t.slice(0, 300) + (t.length > 300 ? '…' : ''); });
     const m = response.match(/\{[\s\S]*\}/);
-    if (!m) throw new Error('AI 没返回 JSON，原始输出：' + response.slice(0,200));
+    if (!m) throw new Error('AI 没返回 JSON。原始：' + response.slice(0,200));
     const parsed = JSON.parse(m[0]);
     aiChatRenderPreview(parsed, bubble);
   } catch(e) {
@@ -1815,37 +2078,62 @@ JSON：`;
   }
 }
 
-let _aichatPendingId = 0;
-const _aichatPending = {};
-
 function aiChatRenderPreview(parsed, bubble) {
   const ops = parsed.operations || [];
-  if (!ops.length) {
-    bubble.textContent = parsed.explanation || '我没识别出可录入的数据，请再描述清楚一些。';
-    return;
-  }
-  const pendingId = ++_aichatPendingId;
-  _aichatPending[pendingId] = ops;
+  const clarify = (parsed.clarify || '').trim();
+  let html = '';
 
-  let html = `<div style="margin-bottom:6px;">${_escapeHtml(parsed.explanation || '准备录入以下数据：')}</div>`;
-  ops.forEach(op => {
-    let badge = '', body = '';
-    if (op.type === 'add_student') {
-      badge = '<span class="aichat-op-type student">学生</span>';
-      body = `${_escapeHtml(op.data.name||'?')} · ${_escapeHtml(op.data.class||'?')} · ${_escapeHtml(op.data.gender||'?')} · 学号 ${_escapeHtml(op.data.no||'?')}`;
-    } else if (op.type === 'add_grade') {
-      badge = '<span class="aichat-op-type grade">成绩</span>';
-      body = `${_escapeHtml(op.data.name||'?')} · ${_escapeHtml(op.data.subject||'?')} <b>${_escapeHtml(String(op.data.score??'?'))}</b> 分（${_escapeHtml(op.data.term||'')} ${_escapeHtml(op.data.examType||'')}）`;
-    } else if (op.type === 'add_attendance') {
-      badge = '<span class="aichat-op-type attendance">考勤</span>';
-      body = `${_escapeHtml(op.data.name||'?')} · ${_escapeHtml(op.data.date||'?')} · <b>${_escapeHtml(op.data.status||'?')}</b>`;
-    } else {
-      badge = '<span class="aichat-op-type">?</span>';
-      body = _escapeHtml(JSON.stringify(op));
-    }
-    html += `<div class="aichat-op">${badge}<span>${body}</span></div>`;
+  if (parsed.explanation) html += `<div style="margin-bottom:8px;">${_escapeHtml(parsed.explanation)}</div>`;
+
+  // query 类型不需要确认，直接展示答案
+  const queryOps = ops.filter(op => op.type === 'query');
+  queryOps.forEach(op => {
+    html += `<div class="aichat-op"><span class="aichat-op-type" style="background:rgba(139,92,246,0.15);color:#8b5cf6;">查询</span><span>${_escapeHtml(op.data?.question || '')} → <b>${_escapeHtml(op.data?.answer || '（AI 未给答案）')}</b></span></div>`;
   });
-  html += `<button class="aichat-confirm-btn" onclick="aiChatConfirm(${pendingId})">✓ 确认录入 ${ops.length} 条</button>`;
+
+  // 其余写入类操作要确认
+  const writeOps = ops.filter(op => op.type !== 'query');
+  if (writeOps.length) {
+    const pendingId = ++_aichatPendingId;
+    _aichatPending[pendingId] = writeOps;
+    writeOps.forEach(op => {
+      let badge = '', body = '';
+      const d = op.data || {};
+      const extras = d.extras && Object.keys(d.extras).length ? ` · 额外: ${Object.entries(d.extras).map(([k,v])=>`${k}=${v}`).join('，')}` : '';
+      if (op.type === 'add_student') {
+        badge = '<span class="aichat-op-type student">学生</span>';
+        body = `${_escapeHtml(d.name||'?')} · ${_escapeHtml(d.class||'?')} · ${_escapeHtml(d.gender||'?')} · 学号 ${_escapeHtml(d.no||'?')}${_escapeHtml(extras)}`;
+      } else if (op.type === 'add_grade') {
+        badge = '<span class="aichat-op-type grade">成绩</span>';
+        body = `${_escapeHtml(d.name||'?')} · ${_escapeHtml(d.subject||'?')} <b>${_escapeHtml(String(d.score??'?'))}</b> 分（${_escapeHtml(d.term||'')} ${_escapeHtml(d.examType||'')}）${_escapeHtml(extras)}`;
+      } else if (op.type === 'add_attendance') {
+        badge = '<span class="aichat-op-type attendance">考勤</span>';
+        body = `${_escapeHtml(d.name||'?')} · ${_escapeHtml(d.date||'?')} · <b>${_escapeHtml(d.status||'?')}</b>${_escapeHtml(extras)}`;
+      } else if (op.type === 'add_note') {
+        badge = '<span class="aichat-op-type" style="background:rgba(168,85,247,0.15);color:#a855f7;">笔记</span>';
+        const tags = Array.isArray(d.tags) ? d.tags.join('/') : '';
+        body = `${_escapeHtml(d.name||'?')} · ${tags ? '['+_escapeHtml(tags)+'] ' : ''}${_escapeHtml(d.content||'?')}${d.date ? ' · '+_escapeHtml(d.date) : ''}`;
+      } else if (op.type === 'update_student') {
+        badge = '<span class="aichat-op-type" style="background:rgba(14,165,233,0.15);color:#0ea5e9;">改学生</span>';
+        body = `${_escapeHtml(d.name||'?')} → ${_escapeHtml(JSON.stringify(d.changes||{}))}`;
+      } else if (op.type === 'update_grade') {
+        badge = '<span class="aichat-op-type" style="background:rgba(14,165,233,0.15);color:#0ea5e9;">改成绩</span>';
+        body = `${_escapeHtml(d.name||'?')} ${_escapeHtml(d.subject||'')} → ${_escapeHtml(JSON.stringify(d.changes||{}))}`;
+      } else if (op.type === 'update_attendance') {
+        badge = '<span class="aichat-op-type" style="background:rgba(14,165,233,0.15);color:#0ea5e9;">改考勤</span>';
+        body = `${_escapeHtml(d.name||'?')} ${_escapeHtml(d.date||'')} → ${_escapeHtml(JSON.stringify(d.changes||{}))}`;
+      } else {
+        badge = '<span class="aichat-op-type">?</span>';
+        body = _escapeHtml(JSON.stringify(op));
+      }
+      html += `<div class="aichat-op">${badge}<span>${body}</span></div>`;
+    });
+    html += `<button class="aichat-confirm-btn" onclick="aiChatConfirm(${pendingId})">✓ 确认写入 ${writeOps.length} 条</button>`;
+  }
+
+  if (clarify) html += `<div style="margin-top:10px;padding:8px 12px;background:rgba(245,158,11,0.1);border-left:3px solid #f59e0b;border-radius:6px;font-size:13px;">💬 ${_escapeHtml(clarify)}</div>`;
+  if (!ops.length && !clarify) html = _escapeHtml(parsed.explanation || '我没识别出可录入的数据，请再描述清楚一些。');
+
   bubble.innerHTML = html;
 }
 
@@ -1854,34 +2142,82 @@ function aiChatConfirm(pendingId) {
   if (!ops) return;
   let added = 0, skipped = 0;
   const reasons = [];
+  const findStu = name => DB.students.find(x => x.name === name);
+
   ops.forEach(op => {
     try {
+      const d = op.data || {};
       if (op.type === 'add_student') {
-        if (!op.data.no || !op.data.name) { skipped++; reasons.push('学生缺学号或姓名'); return; }
-        DB.students.push({ id: uid(), no: String(op.data.no), name: op.data.name, class: op.data.class || '', gender: op.data.gender === '女' ? '女' : '男', contact: op.data.contact || '' });
+        if (!d.name) { skipped++; reasons.push('学生缺姓名'); return; }
+        const newStu = {
+          id: uid(),
+          no: String(d.no || ''),
+          name: d.name,
+          class: d.class || '',
+          gender: d.gender === '女' ? '女' : '男',
+          contact: d.contact || '',
+        };
+        if (d.extras && Object.keys(d.extras).length) newStu.extras = d.extras;
+        DB.students.push(newStu);
         added++;
       } else if (op.type === 'add_grade') {
-        const s = DB.students.find(x => x.name === op.data.name);
-        if (!s) { skipped++; reasons.push(`找不到学生「${op.data.name}」`); return; }
-        if (!op.data.subject || isNaN(Number(op.data.score))) { skipped++; reasons.push('成绩缺科目或分数'); return; }
-        const term = op.data.term || '2025-2026上';
-        const exam = op.data.examType || '期末';
-        const idx = DB.grades.findIndex(g => g.studentId===s.id && g.subject===op.data.subject && g.term===term && g.examType===exam);
-        const rec = { studentId: s.id, subject: op.data.subject, score: Number(op.data.score), term, examType: exam };
+        const s = findStu(d.name);
+        if (!s) { skipped++; reasons.push(`找不到学生「${d.name}」`); return; }
+        if (!d.subject || isNaN(Number(d.score))) { skipped++; reasons.push('成绩缺科目或分数'); return; }
+        const term = d.term || '2025-2026上';
+        const exam = d.examType || '期末';
+        const idx = DB.grades.findIndex(g => g.studentId===s.id && g.subject===d.subject && g.term===term && g.examType===exam);
+        const rec = { studentId: s.id, subject: d.subject, score: Number(d.score), term, examType: exam };
+        if (d.extras && Object.keys(d.extras).length) rec.extras = d.extras;
         if (idx>=0) DB.grades[idx] = rec; else DB.grades.push(rec);
         added++;
       } else if (op.type === 'add_attendance') {
-        const s = DB.students.find(x => x.name === op.data.name);
-        if (!s) { skipped++; reasons.push(`找不到学生「${op.data.name}」`); return; }
-        const date = op.data.date || new Date().toISOString().slice(0,10);
-        const validStatus = ['出勤','缺勤','请假','迟到'].includes(op.data.status) ? op.data.status : '出勤';
+        const s = findStu(d.name);
+        if (!s) { skipped++; reasons.push(`找不到学生「${d.name}」`); return; }
+        const date = d.date || new Date().toISOString().slice(0,10);
+        const validStatus = ['出勤','缺勤','请假','迟到'].includes(d.status) ? d.status : '出勤';
         const idx = DB.attendance.findIndex(a => a.studentId===s.id && a.date===date);
-        if (idx>=0) DB.attendance[idx].status = validStatus;
-        else DB.attendance.push({ studentId: s.id, date, status: validStatus });
+        const rec = { studentId: s.id, date, status: validStatus };
+        if (d.extras && Object.keys(d.extras).length) rec.extras = d.extras;
+        if (idx>=0) DB.attendance[idx] = rec; else DB.attendance.push(rec);
+        added++;
+      } else if (op.type === 'add_note') {
+        const s = findStu(d.name);
+        if (!s) { skipped++; reasons.push(`笔记找不到学生「${d.name}」`); return; }
+        s.notes = s.notes || [];
+        s.notes.push({
+          id: uid(),
+          date: d.date || new Date().toISOString().slice(0,10),
+          content: d.content || '',
+          tags: Array.isArray(d.tags) ? d.tags : []
+        });
+        added++;
+      } else if (op.type === 'update_student') {
+        const s = findStu(d.name);
+        if (!s) { skipped++; reasons.push(`找不到学生「${d.name}」`); return; }
+        Object.entries(d.changes || {}).forEach(([k, v]) => {
+          if (k === 'extras' && typeof v === 'object') s.extras = { ...(s.extras||{}), ...v };
+          else s[k] = v;
+        });
+        added++;
+      } else if (op.type === 'update_grade') {
+        const s = findStu(d.name);
+        if (!s) { skipped++; reasons.push(`找不到学生「${d.name}」`); return; }
+        const g = DB.grades.find(x => x.studentId===s.id && x.subject===d.subject && x.term===(d.term||'2025-2026上') && x.examType===(d.examType||'期末'));
+        if (!g) { skipped++; reasons.push(`找不到 ${d.name} 的 ${d.subject} 成绩`); return; }
+        Object.assign(g, d.changes || {});
+        added++;
+      } else if (op.type === 'update_attendance') {
+        const s = findStu(d.name);
+        if (!s) { skipped++; reasons.push(`找不到学生「${d.name}」`); return; }
+        const a = DB.attendance.find(x => x.studentId===s.id && x.date===d.date);
+        if (!a) { skipped++; reasons.push(`找不到 ${d.name} 在 ${d.date} 的考勤`); return; }
+        Object.assign(a, d.changes || {});
         added++;
       } else { skipped++; reasons.push('未知操作类型 ' + op.type); }
     } catch(e) { skipped++; reasons.push(e.message); }
   });
+
   saveDB();
   refreshClassOptions();
   if (typeof renderDashboard === 'function') renderDashboard();
@@ -1890,7 +2226,7 @@ function aiChatConfirm(pendingId) {
   if (typeof renderAttendance === 'function' && document.querySelector('#page-attendance.active')) renderAttendance();
 
   delete _aichatPending[pendingId];
-  let msg = `✅ 已写入 ${added} 条数据`;
+  let msg = `✅ 已处理 ${added} 条`;
   if (skipped) msg += `（跳过 ${skipped} 条：${[...new Set(reasons)].join('；')}）`;
   aiChatAppend('ai', msg);
 }
@@ -2649,5 +2985,127 @@ document.getElementById('att-date').value = new Date().toISOString().slice(0,10)
 <!-- OCR 资源：仅当通过 start.bat 启动时生效 -->
 <script src="./ocr/ort.all.min.js" onerror="console.warn('ort.all.min.js failed to load')"></script>
 <script src="./ocr/paddle-bundle.js" onerror="console.warn('paddle-bundle.js failed to load')"></script>
+
+<!-- ===== 全局 AI 助手浮动按钮 + 抽屉 ===== -->
+<button class="gai-fab" id="gai-fab" onclick="gaiToggle()" title="问 AI 任何事">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.6 4.8L18 9.4l-4.4 1.6L12 16l-1.6-5L6 9.4l4.4-1.6z"/><path d="M19 14l.7 2.1L22 17l-2.3.9L19 20l-.7-2.1L16 17l2.3-.9z"/></svg>
+</button>
+<div class="gai-backdrop" id="gai-backdrop" onclick="gaiClose()"></div>
+<aside class="gai-panel" id="gai-panel">
+  <div class="gai-head">
+    <div class="gai-head-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.6 4.8L18 9.4l-4.4 1.6L12 16l-1.6-5L6 9.4l4.4-1.6z"/></svg>
+    </div>
+    <div class="gai-head-text">
+      <h6>AI 助手</h6>
+      <small id="gai-context">就绪 · 问我任何事</small>
+    </div>
+    <a href="#" class="gai-jump-link" onclick="event.preventDefault();gaiClose();goPage('aichat');">去对话录入页 →</a>
+    <button class="gai-close-btn" onclick="gaiClose()" title="关闭">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="gai-body" id="gai-body">
+    <div class="aichat-msg ai">
+      <div class="aichat-avatar">AI</div>
+      <div class="aichat-bubble">您好，我是您的全局助手。可以问我数据问题，比如"高一三班数学平均多少"、"谁本月迟到最多"，或者请我给点建议。</div>
+    </div>
+  </div>
+  <div class="gai-foot">
+    <textarea id="gai-input" placeholder="问点什么…（Enter 发送）" rows="1"></textarea>
+    <button class="btn btn-primary" id="gai-send-btn" onclick="gaiSend()">
+      <span id="gai-send-text">发</span>
+    </button>
+  </div>
+</aside>
+
+<script>
+/* === 全局 AI 助手 === */
+function gaiToggle() {
+  const p = document.getElementById('gai-panel');
+  if (p.classList.contains('open')) gaiClose(); else gaiOpen();
+}
+function gaiOpen() {
+  document.getElementById('gai-panel').classList.add('open');
+  document.getElementById('gai-backdrop').classList.add('show');
+  // 给点上下文：当前页面 + 数据规模
+  const activePage = document.querySelector('.page.active')?.id || 'page-dashboard';
+  const ai = (typeof getActiveAI === 'function') ? getActiveAI() : { provider:'ollama', model:'?' };
+  document.getElementById('gai-context').textContent = `${ai.provider}/${ai.model} · 当前${activePage.replace('page-','')}页`;
+  setTimeout(() => document.getElementById('gai-input').focus(), 200);
+}
+function gaiClose() {
+  document.getElementById('gai-panel').classList.remove('open');
+  document.getElementById('gai-backdrop').classList.remove('show');
+}
+function _gaiAppend(role, text) {
+  const body = document.getElementById('gai-body');
+  const avatar = role === 'user' ? '我' : 'AI';
+  const safe = String(text||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+  const id = 'gmsg-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
+  body.insertAdjacentHTML('beforeend',
+    `<div class="aichat-msg ${role}" id="${id}"><div class="aichat-avatar">${avatar}</div><div class="aichat-bubble">${safe}</div></div>`);
+  body.scrollTop = body.scrollHeight;
+  return id;
+}
+async function gaiSend() {
+  const inp = document.getElementById('gai-input');
+  const btn = document.getElementById('gai-send-btn');
+  const btnText = document.getElementById('gai-send-text');
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+  _gaiAppend('user', text);
+  btn.disabled = true; btnText.textContent = '…';
+
+  // 给全局 AI 富上下文：当前页 + 数据统计 + 学生姓名
+  const stuCount = (typeof DB !== 'undefined') ? DB.students.length : 0;
+  const grdCount = (typeof DB !== 'undefined') ? DB.grades.length : 0;
+  const attCount = (typeof DB !== 'undefined') ? DB.attendance.length : 0;
+  const classes = (typeof DB !== 'undefined') ? [...new Set(DB.students.map(s => s.class))].filter(Boolean).join('、') : '';
+  const recentGrades = (typeof DB !== 'undefined') ? DB.grades.slice(-30).map(g => {
+    const s = DB.students.find(x=>x.id===g.studentId);
+    return s ? `${s.name} ${g.subject} ${g.score}` : '';
+  }).filter(Boolean).join('；') : '';
+  const today = new Date().toLocaleDateString('zh-CN');
+  const activePageId = document.querySelector('.page.active')?.id || '';
+  const activePage = activePageId.replace('page-', '') || '首页';
+
+  const prompt = `你是教务系统 ClassWise 的智能助手，帮老师答疑或给建议。请用简短自然的中文回答，1-3 句话即可，不要写代码、不要 JSON、不要 markdown 标题。
+
+系统数据上下文：
+- 今天：${today}
+- 当前页面：${activePage}
+- 学生总数：${stuCount}（班级：${classes || '无'}）
+- 成绩条数：${grdCount}
+- 考勤条数：${attCount}
+- 最近成绩样本：${recentGrades || '无'}
+
+如果老师想录入数据，告诉他可以点左边「AI 对话录入」专门做，或者点右上"去对话录入页"链接。
+如果数据不够用回答，直接说明缺什么。
+
+老师问：${text}
+
+回答：`;
+
+  const tmpId = _gaiAppend('ai', '思考中…');
+  const bubble = document.querySelector('#' + tmpId + ' .aichat-bubble');
+  try {
+    let full = '';
+    await ollamaChat(prompt, t => { bubble.textContent = t; full = t; });
+    if (!full) bubble.textContent = '（AI 未返回内容）';
+  } catch(e) {
+    bubble.textContent = '⚠️ ' + e.message;
+  } finally {
+    btn.disabled = false; btnText.textContent = '发';
+  }
+}
+// Enter 发送 / Esc 关闭
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('gai-panel').classList.contains('open')) gaiClose();
+  if (e.key !== 'Enter' || e.shiftKey) return;
+  if (document.activeElement?.id === 'gai-input') { e.preventDefault(); gaiSend(); }
+});
+</script>
 </body>
 </html>
