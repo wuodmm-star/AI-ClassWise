@@ -729,9 +729,9 @@
         <div class="card">
           <table class="table table-hover mb-0">
             <thead>
-              <tr><th>学号</th><th>姓名</th><th>班级</th><th>性别</th><th>联系方式</th><th style="width:160px">操作</th></tr>
+              <tr><th>学号</th><th>姓名</th><th>班级</th><th>联系方式</th><th style="width:160px">操作</th></tr>
             </thead>
-            <tbody id="students-tbody"><tr><td colspan="6" class="text-center text-muted py-4">暂无学生，点击「添加学生」开始录入</td></tr></tbody>
+            <tbody id="students-tbody"><tr><td colspan="5" class="text-center text-muted py-4">暂无学生，点击「添加学生」开始录入</td></tr></tbody>
           </table>
         </div>
       </section>
@@ -1295,10 +1295,10 @@ function renderStudents() {
   const kw = (document.getElementById('filter-name').value || '').trim();
   const tbody = document.getElementById('students-tbody');
   let list = DB.students.filter(s => (!cls || s.class===cls) && (!kw || s.name.includes(kw)));
-  if (!list.length) { tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">无匹配学生</td></tr>'; return; }
+  if (!list.length) { tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">无匹配学生</td></tr>'; return; }
   tbody.innerHTML = list.map(s => `
     <tr>
-      <td>${s.no}</td><td>${s.name}</td><td>${s.class}</td><td>${s.gender}</td><td>${s.contact||'-'}</td>
+      <td>${s.no}</td><td>${s.name}</td><td>${s.class}</td><td>${s.contact||'-'}</td>
       <td>
         <button class="btn btn-sm btn-outline-primary" onclick="editStudent('${s.id}')">编辑</button>
         <button class="btn btn-sm btn-outline-danger" onclick="delStudent('${s.id}')">删除</button>
@@ -2026,9 +2026,21 @@ async function aiChatSend() {
 
   const fileBlock = att ? `\n\n用户上传了文件「${att.name}」，内容如下（已自动提取为文本）：\n---FILE_START---\n${att.text.slice(0, 6000)}\n---FILE_END---\n` : '';
 
-  const prompt = `你是教务数据助手。任务：把用户口语描述（或上传的文件）解析为结构化操作 JSON。
+  const prompt = `你是教务数据助手。任务：把用户口语描述（或上传的文件）解析为结构化操作。
 
-可用操作类型（按需选用，单条输入可拆多个 operations）：
+输出格式（行式，非常严格，每行独立）：
+- 第一行写：EXPLANATION: 一句话中文说明
+- 每个操作单独一行，格式：OP: {"type":"...","data":{...}}
+- 如需向老师反问，写：CLARIFY: 你的反问内容
+- 最后一行写：END
+
+例子：
+EXPLANATION: 准备录入张三的两门成绩
+OP: {"type":"add_grade","data":{"name":"张三","subject":"数学","score":95,"term":"2025-2026上","examType":"期末"}}
+OP: {"type":"add_grade","data":{"name":"张三","subject":"语文","score":88,"term":"2025-2026上","examType":"期末"}}
+END
+
+可用操作类型（按需选用，可拆多行 OP）：
 1. add_student      新增学生   data: {no, name, class, gender:"男"|"女", contact, extras?:{自由字段}}
 2. add_grade        录入成绩   data: {name, subject, score:数字, term, examType, extras?:{}}
 3. add_attendance   录入考勤   data: {name, date:"YYYY-MM-DD", status:"出勤"|"缺勤"|"请假"|"迟到", extras?:{}}
@@ -2044,38 +2056,183 @@ async function aiChatSend() {
 - 表格上传时，根据表头判断录入类型（含"分"或"成绩"用 add_grade；含"出勤"用 add_attendance；否则 add_student）
 - 名字必须从已有学生列表里找；找不到就用 add_student 先建
 
+格式硬性要求：
+- 每个 OP 行必须是合法 JSON 单行，不要换行不要 markdown
+- JSON 内部用英文引号 " 和英文逗号 ,，不要用中文 ，""
+- 多个 OP 各占一行，不要合并成 JSON 数组
+- 不要任何代码块围栏 \`\`\`
+- 全部小写英文 key，不要 JSON 之外的中文标点
+
 上下文：
 - 今天：${today}
 - 默认学期：${term}
 - 默认考试类型：${exam}
 - 已有学生姓名（成绩/考勤/笔记的 name 必须从中匹配）：${names}${fileBlock}
 
-输出（严格 JSON，无 markdown 无解释）：
-{
-  "operations": [{"type":"...","data":{...}}],
-  "explanation": "中文一句话说明",
-  "clarify": "如果信息不全，在这里反问老师（否则留空字符串）"
-}
-
 老师输入："${text || '(无文字，请根据上传的文件推断要做什么)'}"
 
-JSON：`;
+开始输出（注意：第一行必须以 EXPLANATION: 开头）：
+`;
 
   const tmpId = aiChatAppend('ai', '思考中…');
   const bubble = document.querySelector('#' + tmpId + ' .aichat-bubble');
 
   let response = '';
+  let liveCount = 0;
   try {
-    response = await ollamaChat(prompt, t => { bubble.textContent = t.slice(0, 300) + (t.length > 300 ? '…' : ''); });
-    const m = response.match(/\{[\s\S]*\}/);
-    if (!m) throw new Error('AI 没返回 JSON。原始：' + response.slice(0,200));
-    const parsed = JSON.parse(m[0]);
+    // 流式 + 实时统计 OP 行数
+    response = await ollamaChat(prompt, t => {
+      const matches = t.match(/^OP:/gm);
+      const n = matches ? matches.length : 0;
+      if (n !== liveCount) {
+        liveCount = n;
+        bubble.textContent = `解析中… 已识别 ${n} 条操作`;
+      }
+    });
+
+    // 优先尝试 JSONL 解析（新格式）
+    let parsed = parseJSONL(response);
+
+    // 兜底：万一 AI 不听话还输出大 JSON，用旧 robust 解析器再试
+    if (!parsed || (!parsed.operations.length && !parsed.clarify)) {
+      const fallback = robustParseJSON(response);
+      if (fallback && (fallback.operations?.length || fallback.clarify)) parsed = fallback;
+    }
+
+    if (!parsed) throw new Error('AI 输出格式无法识别，请重试或换更强的模型（如 DeepSeek）');
     aiChatRenderPreview(parsed, bubble);
   } catch(e) {
-    bubble.textContent = '⚠️ 解析失败：' + e.message;
+    bubble.innerHTML = '⚠️ 解析失败：' + _escapeHtml(e.message) + '<details style="margin-top:8px;font-size:11px;"><summary style="cursor:pointer;color:var(--accent);">查看 AI 原始输出</summary><pre style="max-height:200px;overflow:auto;background:var(--bg-stripe);padding:8px;border-radius:6px;margin-top:6px;white-space:pre-wrap;word-break:break-all;">'+_escapeHtml(response.slice(0, 4000))+'</pre></details>';
   } finally {
     btn.disabled = false; btnText.textContent = '发送';
   }
+}
+
+/* JSONL 解析器：每行独立 JSON，坏行跳过 */
+function parseJSONL(raw) {
+  if (!raw) return null;
+  const lines = String(raw).split(/\r?\n/);
+  const ops = [];
+  let explanation = '';
+  let clarify = '';
+  let skippedCount = 0;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    if (/^EXPLANATION\s*[:：]/i.test(line)) {
+      explanation = line.replace(/^EXPLANATION\s*[:：]\s*/i, '').trim();
+      continue;
+    }
+    if (/^CLARIFY\s*[:：]/i.test(line)) {
+      clarify = line.replace(/^CLARIFY\s*[:：]\s*/i, '').trim();
+      continue;
+    }
+    if (/^END\b/i.test(line)) break;
+
+    if (/^OP\s*[:：]/i.test(line)) {
+      let jsonPart = line.replace(/^OP\s*[:：]\s*/i, '').trim();
+      // 去掉行尾可能多出的 markdown 痕迹
+      jsonPart = jsonPart.replace(/^```(?:json)?\s*/i, '').replace(/```$/, '').trim();
+      // 行内中文标点修正
+      jsonPart = jsonPart.replace(/[“”]/g, '"').replace(/[‘’]/g, "'").replace(/，/g, ',').replace(/：/g, ':');
+      // 去尾随逗号
+      jsonPart = jsonPart.replace(/,(\s*[}\]])/g, '$1');
+      try {
+        const obj = JSON.parse(jsonPart);
+        if (obj && obj.type) ops.push(obj);
+        else skippedCount++;
+      } catch(e) {
+        skippedCount++;
+      }
+      continue;
+    }
+    // 其他行视为说明的延续（如果 explanation 还空）
+    if (!explanation && line.length < 200) explanation = line;
+  }
+
+  // 必须至少有一个 OP 或 clarify 才算解析成功
+  if (!ops.length && !clarify) return null;
+
+  if (skippedCount && !explanation) explanation = `（跳过了 ${skippedCount} 条格式坏的 OP 行）`;
+  else if (skippedCount) explanation += `（共 ${ops.length + skippedCount} 条，跳过 ${skippedCount} 条 JSON 坏行）`;
+
+  return { operations: ops, explanation, clarify };
+}
+
+/* 宽容版 JSON 解析：处理 AI 常见输出脏问题 */
+function robustParseJSON(raw) {
+  if (!raw) return null;
+  let s = String(raw);
+
+  // 1. 剥掉 markdown 围栏
+  s = s.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '');
+
+  // 2. 找最外层 {} —— 用平衡括号扫描，避开字符串里的 {}
+  let start = s.indexOf('{');
+  if (start < 0) return null;
+  let depth = 0, inStr = false, escape = false, end = -1;
+  for (let i = start; i < s.length; i++) {
+    const c = s[i];
+    if (escape) { escape = false; continue; }
+    if (c === '\\') { escape = true; continue; }
+    if (c === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (c === '{') depth++;
+    else if (c === '}') { depth--; if (depth === 0) { end = i; break; } }
+  }
+  if (end < 0) return null;
+  let body = s.slice(start, end + 1);
+
+  // 3. 直接尝试
+  try { return JSON.parse(body); } catch(e) {}
+
+  // 4. 修复常见脏问题：中文标点、尾随逗号、单引号字符串
+  let fixed = body
+    .replace(/[、，]/g, ',')          // 、 ， → ,
+    .replace(/[“”]/g, '"')          // " " → "
+    .replace(/[‘’]/g, "'")          // ' ' → '
+    .replace(/，/g, ',').replace(/：/g, ':')   // 中文逗号冒号
+    .replace(/,(\s*[}\]])/g, '$1')            // 尾随逗号
+    .replace(/}(\s*){/g, '},$1{')             // 缺失对象间逗号
+    .replace(/](\s*)\[/g, '],$1[');           // 缺失数组间逗号
+
+  try { return JSON.parse(fixed); } catch(e) {}
+
+  // 5. 极端救援：尝试提取 operations 数组，逐个 op 解析，跳过坏的
+  try {
+    const opsMatch = body.match(/"operations"\s*:\s*\[([\s\S]*?)\](?=\s*[,}])/);
+    if (opsMatch) {
+      const ops = [];
+      // 用平衡括号逐个抓 { ... } 对象
+      let str = opsMatch[1], d2 = 0, st = -1, ins = false, esc = false;
+      for (let i = 0; i < str.length; i++) {
+        const c = str[i];
+        if (esc) { esc = false; continue; }
+        if (c === '\\') { esc = true; continue; }
+        if (c === '"') { ins = !ins; continue; }
+        if (ins) continue;
+        if (c === '{') { if (d2 === 0) st = i; d2++; }
+        else if (c === '}') {
+          d2--;
+          if (d2 === 0 && st >= 0) {
+            try { ops.push(JSON.parse(str.slice(st, i + 1))); } catch(e) {}
+            st = -1;
+          }
+        }
+      }
+      const expMatch = body.match(/"explanation"\s*:\s*"((?:\\"|[^"])*)"/);
+      const clMatch  = body.match(/"clarify"\s*:\s*"((?:\\"|[^"])*)"/);
+      if (ops.length) return {
+        operations: ops,
+        explanation: expMatch ? expMatch[1] : '（部分解析成功，跳过了 JSON 损坏的条目）',
+        clarify: clMatch ? clMatch[1] : ''
+      };
+    }
+  } catch(e) {}
+
+  return null;
 }
 
 function aiChatRenderPreview(parsed, bubble) {
