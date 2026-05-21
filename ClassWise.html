@@ -1070,6 +1070,21 @@
       <!-- 数据与设置 -->
       <section class="page" id="page-settings">
         <h2 class="page-title">数据与设置</h2>
+
+        <!-- Schema 演化总览 -->
+        <div class="card p-4 mb-3">
+          <h5>🧬 数据库 Schema（自我演化）</h5>
+          <p class="text-muted">数据库结构会随着您和 AI 录入的数据自动长大。您也可以手动管理。</p>
+          <div id="schema-overview" style="margin-top:8px;"></div>
+          <div id="schema-promotions" style="margin-top:12px;"></div>
+          <div class="d-flex gap-2 mt-3 flex-wrap">
+            <button class="btn btn-sm btn-outline-primary" onclick="renderSchemaPanel()">🔄 刷新</button>
+            <button class="btn btn-sm btn-outline-primary" onclick="schemaAddSubject()">➕ 加科目</button>
+            <button class="btn btn-sm btn-outline-primary" onclick="schemaAddExamType()">➕ 加考试类型</button>
+            <button class="btn btn-sm btn-outline-primary" onclick="schemaAddTerm()">➕ 加学期</button>
+          </div>
+        </div>
+
         <div class="card p-4 mb-3">
           <h5>💾 数据备份</h5>
           <p class="text-muted">建议定期导出 JSON 备份，避免浏览器清除数据后丢失。</p>
@@ -1184,8 +1199,9 @@
             <select class="form-select" id="gm-class" onchange="renderGradeModalRows()"></select>
           </div>
         </div>
-        <div class="mb-2"><label class="form-label">本次录入科目（用逗号分隔，例：语文,数学,英语）</label>
-          <input class="form-control" id="gm-subjects" value="语文,数学,英语,物理,化学" onchange="renderGradeModalRows()">
+        <div class="mb-2"><label class="form-label">本次录入科目（用逗号分隔，可随意增删）</label>
+          <input class="form-control" id="gm-subjects" value="语文,数学,英语,物理,化学,生物,政治,历史,地理" onchange="onGradeSubjectsChange()">
+          <small class="text-muted">提示：本框留空可恢复默认；系统会自动记住您上次用的科目</small>
         </div>
         <div class="table-responsive">
           <table class="table table-bordered">
@@ -1203,7 +1219,31 @@
 <script>
 /* ==================== 数据层 ==================== */
 const STORAGE_KEY = 'jwxt_data_v1';
-let DB = { students:[], grades:[], attendance:[] };
+let DB = { students:[], grades:[], attendance:[], schema:null };
+
+/* === DB.schema —— 自我演化的元结构 === */
+const SCHEMA_DEFAULTS = Object.freeze({
+  // 内建字段（不可移除，老师/AI 不可删）
+  student_core_fields: ['no', 'name', 'class', 'gender', 'contact'],
+  // 自动登记/晋升的字段（动态长大）
+  student_promoted_fields: [],   // 例如 ['特长','奖项']
+  // 自动收集
+  subjects:   ['语文', '数学', '英语', '物理', '化学', '生物', '政治', '历史', '地理'],
+  classes:    [],
+  terms:      ['2025-2026上'],
+  examTypes:  ['月考', '期中', '期末'],
+  attendance_statuses: ['出勤', '缺勤', '请假', '迟到'],
+  // 跟踪 extras key 在学生中出现的频次（用于晋升建议）
+  extras_freq: {},   // { '特长': 23, '奖项': 5, ... }
+  // 学校上下文
+  profile: {
+    school_type: '',   // 小学/初中/高中
+    grade_level: '',   // 高一 / 初二 等
+    class_format: '',  // '高一(3)班' / '1-3班' / '7年级2班'
+    notes: ''          // 自由备注
+  },
+  version: 1
+});
 
 function loadDB() {
   try {
@@ -1213,7 +1253,129 @@ function loadDB() {
   if (!DB.students) DB.students = [];
   if (!DB.grades) DB.grades = [];
   if (!DB.attendance) DB.attendance = [];
+  // 初始化 schema（若不存在）+ 用现有数据回填
+  ensureSchema();
 }
+
+function ensureSchema() {
+  if (!DB.schema) DB.schema = JSON.parse(JSON.stringify(SCHEMA_DEFAULTS));
+  // 缺失字段补默认
+  for (const [k, v] of Object.entries(SCHEMA_DEFAULTS)) {
+    if (DB.schema[k] === undefined) DB.schema[k] = JSON.parse(JSON.stringify(v));
+  }
+  // 从现有数据回填：班级、学期、考试类型、科目
+  const cls = new Set(DB.schema.classes);
+  DB.students.forEach(s => { if (s.class) cls.add(s.class); });
+  DB.schema.classes = [...cls].sort();
+
+  const subs = new Set(DB.schema.subjects);
+  const terms = new Set(DB.schema.terms);
+  const exams = new Set(DB.schema.examTypes);
+  DB.grades.forEach(g => {
+    if (g.subject) subs.add(g.subject);
+    if (g.term) terms.add(g.term);
+    if (g.examType) exams.add(g.examType);
+  });
+  DB.schema.subjects = [...subs];
+  DB.schema.terms = [...terms].sort();
+  DB.schema.examTypes = [...exams];
+
+  // 回填 extras 出现频次
+  const freq = {};
+  DB.students.forEach(s => {
+    if (s.extras) Object.keys(s.extras).forEach(k => { freq[k] = (freq[k] || 0) + 1; });
+  });
+  DB.schema.extras_freq = freq;
+}
+
+/* === 写入路径上的自动登记 ===
+   任何新值通过这里登记到 schema，无副作用（已有则忽略） */
+function registerSchemaValue(category, value) {
+  if (!value || !DB.schema || !DB.schema[category]) return;
+  if (!DB.schema[category].includes(value)) {
+    DB.schema[category].push(value);
+    if (category === 'subjects' || category === 'classes' || category === 'examTypes') {
+      DB.schema[category].sort();
+    }
+  }
+}
+function registerExtrasKey(key) {
+  if (!key || !DB.schema) return;
+  DB.schema.extras_freq[key] = (DB.schema.extras_freq[key] || 0) + 1;
+}
+/* === Schema 管理 UI === */
+function renderSchemaPanel() {
+  const overview = document.getElementById('schema-overview');
+  if (!overview) return;
+  ensureSchema();
+  const sch = DB.schema;
+
+  const chip = (text, onRemove) =>
+    `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;margin:2px 4px 2px 0;background:var(--bg-stripe);border-radius:14px;font-size:12px;">${_escapeHtml(text)}${onRemove ? `<button class="btn btn-link p-0" style="font-size:11px;color:#ef4444;text-decoration:none;line-height:1;" onclick="${onRemove}" title="移除">✕</button>` : ''}</span>`;
+
+  const section = (title, items, removeFn) => `
+    <div style="margin-bottom:10px;">
+      <small class="text-muted" style="font-weight:600;display:block;margin-bottom:4px;">${title} (${items.length})</small>
+      <div>${items.length ? items.map(it => chip(it, removeFn ? `${removeFn}('${_escapeHtml(it).replace(/'/g,"\\'")}')` : null)).join('') : '<span class="text-muted" style="font-size:12px;">空</span>'}</div>
+    </div>`;
+
+  overview.innerHTML =
+    section('📚 科目', sch.subjects, 'schemaRemoveSubject') +
+    section('🏫 班级', sch.classes, 'schemaRemoveClass') +
+    section('📅 学期', sch.terms, 'schemaRemoveTerm') +
+    section('📝 考试类型', sch.examTypes, 'schemaRemoveExamType') +
+    section('🌟 已晋升字段', sch.student_promoted_fields, 'schemaRemovePromotedField') +
+    section('🔒 核心字段 (不可改)', sch.student_core_fields, null);
+
+  // 晋升候选
+  const cands = getSchemaPromotionCandidates();
+  const promoDiv = document.getElementById('schema-promotions');
+  if (cands.length) {
+    promoDiv.innerHTML = `
+      <div style="padding:12px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.3);border-radius:10px;">
+        <strong style="color:#8b5cf6;">💡 检测到晋升候选 (${cands.length})</strong>
+        <div style="font-size:12px;color:var(--text-muted);margin:4px 0 8px;">这些 extras 字段在多名学生身上反复出现，建议升级为正式字段，将在学生编辑表单里显示为独立输入框：</div>
+        ${cands.map(c => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid var(--border);"><span><b>${_escapeHtml(c.key)}</b> · ${c.count} 名学生 (${(c.ratio*100).toFixed(0)}%)</span><button class="btn btn-sm btn-success" onclick="schemaPromote('${_escapeHtml(c.key).replace(/'/g,"\\'")}')">晋升</button></div>`).join('')}
+      </div>`;
+  } else {
+    promoDiv.innerHTML = '<small class="text-muted">暂无晋升建议（extras 字段出现率不足 30% 或学生数 &lt; 5）</small>';
+  }
+}
+
+function schemaAddSubject()   { const v = prompt('新科目名称（如：信息技术）')?.trim(); if (v) { registerSchemaValue('subjects', v); saveDB(); renderSchemaPanel(); } }
+function schemaAddTerm()      { const v = prompt('新学期（如：2025-2026下）')?.trim(); if (v) { registerSchemaValue('terms', v); saveDB(); renderSchemaPanel(); } }
+function schemaAddExamType()  { const v = prompt('新考试类型（如：周测）')?.trim(); if (v) { registerSchemaValue('examTypes', v); saveDB(); renderSchemaPanel(); } }
+function schemaRemoveSubject(v)  { if (!confirm(`从 schema 移除「${v}」？已录入的成绩数据不受影响。`)) return; DB.schema.subjects = DB.schema.subjects.filter(x=>x!==v); saveDB(); renderSchemaPanel(); }
+function schemaRemoveClass(v)    { if (!confirm(`从 schema 移除「${v}」？`)) return; DB.schema.classes = DB.schema.classes.filter(x=>x!==v); saveDB(); renderSchemaPanel(); }
+function schemaRemoveTerm(v)     { if (!confirm(`从 schema 移除「${v}」？`)) return; DB.schema.terms = DB.schema.terms.filter(x=>x!==v); saveDB(); renderSchemaPanel(); }
+function schemaRemoveExamType(v) { if (!confirm(`从 schema 移除「${v}」？`)) return; DB.schema.examTypes = DB.schema.examTypes.filter(x=>x!==v); saveDB(); renderSchemaPanel(); }
+function schemaRemovePromotedField(v) {
+  if (!confirm(`取消「${v}」的晋升状态？已录入的值仍保留在学生 extras 里。`)) return;
+  DB.schema.student_promoted_fields = DB.schema.student_promoted_fields.filter(x=>x!==v);
+  saveDB(); renderSchemaPanel();
+}
+function schemaPromote(key) {
+  if (DB.schema.student_promoted_fields.includes(key)) { alert('已经晋升过了'); return; }
+  DB.schema.student_promoted_fields.push(key);
+  saveDB();
+  renderSchemaPanel();
+  alert(`✅ 「${key}」已晋升为正式字段。下次打开学生编辑会看到独立输入框。`);
+}
+
+/* 返回应该晋升的 extras keys（出现率 >= 30% 且学生数 >= 5） */
+function getSchemaPromotionCandidates() {
+  if (!DB.schema || !DB.students.length || DB.students.length < 5) return [];
+  const total = DB.students.length;
+  const out = [];
+  for (const [k, count] of Object.entries(DB.schema.extras_freq || {})) {
+    if (DB.schema.student_promoted_fields.includes(k)) continue;
+    if (DB.schema.student_core_fields.includes(k)) continue;
+    const ratio = count / total;
+    if (ratio >= 0.3) out.push({ key: k, count, ratio });
+  }
+  return out.sort((a,b) => b.count - a.count);
+}
+
 function saveDB() { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
@@ -1232,6 +1394,7 @@ document.querySelectorAll('#mainNav .nav-link').forEach(a => {
     if (a.dataset.page==='ai') { refreshAIOptions(); }
     if (a.dataset.page==='aichat') { refreshAIOptions(); }
     if (a.dataset.page==='ocr') { updateOcrEngineHint(); }
+    if (a.dataset.page==='settings') { if (typeof renderSchemaPanel === 'function') renderSchemaPanel(); }
   });
 });
 
@@ -1311,7 +1474,26 @@ function openStudentModal() {
   document.getElementById('stu-gender').value = '男';
   document.getElementById('stu-extras-section').style.display = 'none';
   document.getElementById('stu-notes-section').style.display = 'none';
+  renderPromotedFields(null);   // 渲染晋升字段（新增时为空值）
   new bootstrap.Modal('#studentModal').show();
+}
+
+/* 把 schema.student_promoted_fields 渲染成正式输入框 */
+function renderPromotedFields(student) {
+  // 找到挂载点（联系方式 input 后面）
+  const contact = document.getElementById('stu-contact');
+  if (!contact) return;
+  const parent = contact.closest('.modal-body');
+  // 清掉之前可能渲染过的
+  parent.querySelectorAll('.stu-promoted-wrap').forEach(el => el.remove());
+  const fields = DB.schema?.student_promoted_fields || [];
+  if (!fields.length) return;
+  const ref = document.getElementById('stu-extras-section');
+  const html = fields.map(f => {
+    const val = (student?.extras?.[f] != null) ? student.extras[f] : '';
+    return `<div class="mb-2 stu-promoted-wrap"><label class="form-label">${_escapeHtml(f)} <small class="text-muted">(晋升字段)</small></label><input class="form-control" id="stu-promoted-${_escapeHtml(f)}" value="${_escapeHtml(val)}"></div>`;
+  }).join('');
+  ref.insertAdjacentHTML('beforebegin', html);
 }
 function editStudent(id) {
   const s = DB.students.find(x=>x.id===id); if (!s) return;
@@ -1322,6 +1504,9 @@ function editStudent(id) {
   document.getElementById('stu-class').value = s.class;
   document.getElementById('stu-gender').value = s.gender;
   document.getElementById('stu-contact').value = s.contact || '';
+
+  // 晋升字段渲染
+  renderPromotedFields(s);
 
   // 渲染 extras
   const exSec = document.getElementById('stu-extras-section');
@@ -1370,13 +1555,34 @@ function saveStudent() {
     contact: document.getElementById('stu-contact').value.trim()
   };
   if (!data.no || !data.name || !data.class) { alert('学号、姓名、班级为必填项'); return; }
+
+  // 收集所有"晋升字段"的输入值
+  const promotedInputs = {};
+  (DB.schema?.student_promoted_fields || []).forEach(field => {
+    const el = document.getElementById('stu-promoted-' + field);
+    if (el && el.value.trim()) promotedInputs[field] = el.value.trim();
+  });
+
   if (id) {
     // 只更新基础字段，保留 extras 和 notes
     const s = DB.students.find(x=>x.id===id);
-    if (s) Object.assign(s, data);
+    if (s) {
+      Object.assign(s, data);
+      // 写入晋升字段（存到 extras 里，保持数据格式统一）
+      if (Object.keys(promotedInputs).length) {
+        s.extras = { ...(s.extras||{}), ...promotedInputs };
+        Object.keys(promotedInputs).forEach(k => { if (!Object.keys(s.extras).includes(k)) registerExtrasKey(k); });
+      }
+    }
   } else {
-    DB.students.push({ id: uid(), ...data });
+    const newStu = { id: uid(), ...data };
+    if (Object.keys(promotedInputs).length) {
+      newStu.extras = promotedInputs;
+      Object.keys(promotedInputs).forEach(k => registerExtrasKey(k));
+    }
+    DB.students.push(newStu);
   }
+  registerSchemaValue('classes', data.class);
   saveDB();
   bootstrap.Modal.getInstance(document.getElementById('studentModal')).hide();
   refreshClassOptions(); renderStudents();
@@ -1429,9 +1635,21 @@ function openGradeModal() {
   if (!DB.students.length) { alert('请先在「学生管理」录入学生'); return; }
   document.getElementById('gm-term').textContent = document.getElementById('grade-term').value;
   document.getElementById('gm-exam').textContent = document.getElementById('grade-exam').value;
+  // 优先用 schema 里收集的科目列表（自动包含历史录入过的），其次用上次记忆
+  const fromSchema = DB.schema?.subjects?.length ? DB.schema.subjects.join(',') : '';
+  const remembered = localStorage.getItem('jwxt_last_subjects');
+  const current = document.getElementById('gm-subjects').value.trim();
+  if (fromSchema) document.getElementById('gm-subjects').value = fromSchema;
+  else if (remembered) document.getElementById('gm-subjects').value = remembered;
   refreshClassOptions();
   renderGradeModalRows();
   new bootstrap.Modal('#gradeModal').show();
+}
+function onGradeSubjectsChange() {
+  const v = document.getElementById('gm-subjects').value.trim();
+  if (v) localStorage.setItem('jwxt_last_subjects', v);
+  else localStorage.removeItem('jwxt_last_subjects');
+  renderGradeModalRows();
 }
 function renderGradeModalRows() {
   const cls = document.getElementById('gm-class').value;
@@ -2041,6 +2259,22 @@ function buildAIDBSnapshot(term, exam) {
     out += `\n今日（${today}）尚无考勤记录\n`;
   }
 
+  // === Schema 元结构（让 AI 知道当前可用的"词汇表"）===
+  if (DB.schema) {
+    out += `\n【Schema（数据库自我演化的元结构）】\n`;
+    out += `- 已收集科目: ${DB.schema.subjects.join('、') || '无'}\n`;
+    out += `- 已收集班级: ${DB.schema.classes.join('、') || '无'}\n`;
+    out += `- 已收集学期: ${DB.schema.terms.join('、') || '无'}\n`;
+    out += `- 已收集考试类型: ${DB.schema.examTypes.join('、') || '无'}\n`;
+    out += `- 学生正式字段（含晋升）: ${DB.schema.student_core_fields.concat(DB.schema.student_promoted_fields).join('、')}\n`;
+    // 晋升候选
+    const cands = (typeof getSchemaPromotionCandidates === 'function') ? getSchemaPromotionCandidates() : [];
+    if (cands.length) {
+      out += `- 晋升候选（出现率 ≥30% 的 extras key）: ${cands.map(c => `${c.key}(${c.count}人)`).join('、')}\n`;
+      out += `  → 你可以建议用 add_schema_field 把它们晋升为正式字段\n`;
+    }
+  }
+
   return out;
 }
 
@@ -2109,6 +2343,7 @@ END
 6. update_grade     修改成绩   data: {name, subject, term, examType, changes:{score?}}
 7. update_attendance 修改考勤  data: {name, date, changes:{status?}}
 8. query            纯查询     data: {question, answer:"你直接回答的内容"}   只读，不写库
+9. add_schema_field 晋升 extras 字段为正式字段   data: {field:"字段名"}   当某 extras key 累计出现率 >=30% 时建议晋升
 
 灵活规则：
 - 标准字段不够用时，把额外信息放到 extras。例如老师说"张三特长是钢琴"，应该 add_student 或 update_student 的 extras 加 {"特长":"钢琴"}
@@ -2382,8 +2617,12 @@ function aiChatConfirm(pendingId) {
           gender: d.gender === '女' ? '女' : '男',
           contact: d.contact || '',
         };
-        if (d.extras && Object.keys(d.extras).length) newStu.extras = d.extras;
+        if (d.extras && Object.keys(d.extras).length) {
+          newStu.extras = d.extras;
+          Object.keys(d.extras).forEach(k => registerExtrasKey(k));
+        }
         DB.students.push(newStu);
+        registerSchemaValue('classes', newStu.class);
         added++;
       } else if (op.type === 'add_grade') {
         const s = findStu(d.name);
@@ -2395,6 +2634,9 @@ function aiChatConfirm(pendingId) {
         const rec = { studentId: s.id, subject: d.subject, score: Number(d.score), term, examType: exam };
         if (d.extras && Object.keys(d.extras).length) rec.extras = d.extras;
         if (idx>=0) DB.grades[idx] = rec; else DB.grades.push(rec);
+        registerSchemaValue('subjects', d.subject);
+        registerSchemaValue('terms', term);
+        registerSchemaValue('examTypes', exam);
         added++;
       } else if (op.type === 'add_attendance') {
         const s = findStu(d.name);
@@ -2421,9 +2663,23 @@ function aiChatConfirm(pendingId) {
         const s = findStu(d.name);
         if (!s) { skipped++; reasons.push(`找不到学生「${d.name}」`); return; }
         Object.entries(d.changes || {}).forEach(([k, v]) => {
-          if (k === 'extras' && typeof v === 'object') s.extras = { ...(s.extras||{}), ...v };
+          if (k === 'extras' && typeof v === 'object') {
+            const prevKeys = new Set(Object.keys(s.extras || {}));
+            s.extras = { ...(s.extras||{}), ...v };
+            Object.keys(v).forEach(key => { if (!prevKeys.has(key)) registerExtrasKey(key); });
+          }
           else s[k] = v;
         });
+        if (d.changes?.class) registerSchemaValue('classes', d.changes.class);
+        added++;
+      } else if (op.type === 'add_schema_field') {
+        // AI 主动建议把某 extras key 晋升为正式字段
+        const key = d.field || d.key;
+        if (!key) { skipped++; reasons.push('schema 操作缺 field'); return; }
+        if (DB.schema.student_core_fields.includes(key) || DB.schema.student_promoted_fields.includes(key)) {
+          skipped++; reasons.push(`字段「${key}」已存在`); return;
+        }
+        DB.schema.student_promoted_fields.push(key);
         added++;
       } else if (op.type === 'update_grade') {
         const s = findStu(d.name);
