@@ -466,6 +466,67 @@
   .aichat-confirm-btn:hover { background:#0ea870; }
   .aichat-confirm-btn:disabled { background:var(--text-muted); cursor:default; }
 
+  /* === Grade table edit mode === */
+  .grade-edit-toggle.active { background:#10b981; color:#fff; border-color:#10b981; }
+  #grades-table.editing th.draggable, #grades-table.editing td.row-handle {
+    cursor: grab;
+    user-select: none;
+    position: relative;
+  }
+  #grades-table.editing th.draggable::before {
+    content: '⋮⋮';
+    position: absolute;
+    left: 4px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 10px;
+    letter-spacing: -2px;
+    pointer-events: none;
+  }
+  #grades-table.editing th.draggable { padding-left: 22px !important; }
+  #grades-table.editing td.row-handle { width:30px; text-align:center; color:var(--text-muted); font-size:12px; letter-spacing:-1px; }
+  #grades-table.editing tr[draggable="true"] { cursor: grab; }
+  #grades-table.editing tr[draggable="true"]:active { cursor: grabbing; }
+  #grades-table .drag-target-col { background:rgba(16,185,129,0.12) !important; }
+  #grades-table .drag-target-row { background:rgba(16,185,129,0.12) !important; }
+  #grades-table.editing .grade-inline-input {
+    width:62px;
+    padding:2px 6px;
+    font-size:13px;
+    text-align:center;
+    border:1px solid var(--border);
+    background:transparent;
+    border-radius:4px;
+    color:var(--text);
+  }
+  #grades-table.editing .grade-inline-input:focus { border-color:var(--accent); background:var(--bg-card-solid); outline:none; }
+  #grades-table.editing td { padding:6px 8px; }
+
+  /* === Grade sub tabs === */
+  .grade-subnav { display:flex; gap:4px; margin-bottom:14px; border-bottom:1px solid var(--border); padding-bottom:0; }
+  .grade-subnav button {
+    background:transparent; border:none; padding:10px 18px;
+    font-size:14px; font-weight:500; color:var(--text-sub);
+    border-bottom:2px solid transparent;
+    cursor:pointer; transition:all .2s var(--transition);
+    border-radius:8px 8px 0 0;
+  }
+  .grade-subnav button:hover { color:var(--text); background:var(--bg-hover); }
+  .grade-subnav button.active { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
+
+  /* === Analysis stats === */
+  .stat-tile { background:var(--bg-card-solid); border:1px solid var(--border); border-radius:10px; padding:14px 18px; text-align:center; }
+  .stat-tile .stat-tile-num { font-size:24px; font-weight:700; color:var(--text); line-height:1.1; }
+  .stat-tile .stat-tile-lbl { font-size:11px; color:var(--text-muted); margin-top:4px; text-transform:uppercase; letter-spacing:0.04em; }
+  .stat-tile.warn .stat-tile-num { color:#f59e0b; }
+  .stat-tile.good .stat-tile-num { color:#10b981; }
+  .stat-tile.bad  .stat-tile-num { color:#ef4444; }
+
+  .class-stats-table { width:100%; font-size:13px; }
+  .class-stats-table th, .class-stats-table td { padding:6px 10px; text-align:right; }
+  .class-stats-table th { background:var(--bg-stripe); color:var(--text-muted); font-weight:600; }
+  .class-stats-table td:first-child, .class-stats-table th:first-child { text-align:left; }
+
   /* === Global AI 浮动按钮 + 右侧抽屉 === */
   .gai-fab {
     position:fixed; right:24px; bottom:24px; z-index:1040;
@@ -739,6 +800,13 @@
       <!-- 成绩管理 -->
       <section class="page" id="page-grades">
         <h2 class="page-title">成绩管理</h2>
+
+        <div class="grade-subnav">
+          <button class="active" data-tab="table" onclick="showGradeSubTab('table')">📋 成绩表</button>
+          <button data-tab="analysis" onclick="showGradeSubTab('analysis')">📊 数据分析</button>
+        </div>
+
+        <div id="grade-tab-table">
         <div class="card p-3 mb-3">
           <div class="row g-2 align-items-end">
             <div class="col-md-3">
@@ -766,6 +834,7 @@
             <div class="col-md-3 text-end">
               <button class="btn btn-primary btn-lg-icon" onclick="openGradeModal()">➕ 录入成绩</button>
               <button class="btn btn-outline-primary btn-lg-icon" onclick="openImportModal('grades')">📥 导入表格</button>
+              <button class="btn btn-outline-success grade-edit-toggle" id="grade-edit-btn" onclick="toggleGradeEdit()" title="编辑模式：可直接改分数 + 拖拽行列">✏️ 编辑</button>
             </div>
           </div>
         </div>
@@ -775,6 +844,83 @@
               <thead id="grades-thead"></thead>
               <tbody id="grades-tbody"><tr><td colspan="3" class="text-center text-muted py-4">暂无成绩</td></tr></tbody>
             </table>
+          </div>
+        </div>
+        </div><!-- /grade-tab-table -->
+
+        <div id="grade-tab-analysis" style="display:none;">
+          <div class="card p-3 mb-3">
+            <div class="row g-2 align-items-end">
+              <div class="col-md-2">
+                <label class="form-label">学期</label>
+                <select id="analy-term" class="form-select" onchange="renderGradeAnalysis()"></select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">考试</label>
+                <select id="analy-exam" class="form-select" onchange="renderGradeAnalysis()"></select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">班级</label>
+                <select id="analy-class" class="form-select" onchange="renderGradeAnalysis()">
+                  <option value="">全部班级</option>
+                </select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">X 轴 (科目)</label>
+                <select id="analy-x" class="form-select" onchange="renderGradeAnalysis()"></select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">Y 轴 (科目)</label>
+                <select id="analy-y" class="form-select" onchange="renderGradeAnalysis()"></select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label">Z 轴 (科目)</label>
+                <select id="analy-z" class="form-select" onchange="renderGradeAnalysis()"></select>
+              </div>
+            </div>
+            <small class="text-muted mt-2 d-block">提示：每个点代表一名学生，鼠标拖拽可旋转 3D 视角，滚轮缩放，悬停查看详情</small>
+          </div>
+
+          <!-- 关键数字 KPI -->
+          <div class="row g-3 mb-3" id="analy-kpis">
+            <div class="col-md-3"><div class="stat-tile"><div class="stat-tile-num" id="kpi-students">—</div><div class="stat-tile-lbl">参考人数</div></div></div>
+            <div class="col-md-3"><div class="stat-tile good"><div class="stat-tile-num" id="kpi-avg">—</div><div class="stat-tile-lbl">平均总分</div></div></div>
+            <div class="col-md-3"><div class="stat-tile"><div class="stat-tile-num" id="kpi-max">—</div><div class="stat-tile-lbl">最高总分</div></div></div>
+            <div class="col-md-3"><div class="stat-tile bad"><div class="stat-tile-num" id="kpi-min">—</div><div class="stat-tile-lbl">最低总分</div></div></div>
+          </div>
+
+          <!-- 3D 散点图 -->
+          <div class="card p-3 mb-3">
+            <h6 class="mb-2">🎯 3D 成绩点云</h6>
+            <div id="plot-3d" style="height:520px;"></div>
+            <div id="plot-3d-empty" style="display:none;text-align:center;padding:80px 20px;color:var(--text-muted);">
+              <div style="font-size:48px;margin-bottom:12px;">📊</div>
+              <div>请确保至少有 3 个不同的科目已录入成绩</div>
+            </div>
+          </div>
+
+          <!-- 2D 班级对比 + 分布直方图 -->
+          <div class="row g-3 mb-3">
+            <div class="col-md-7">
+              <div class="card p-3">
+                <h6 class="mb-2">📦 各班 各科 平均分对比</h6>
+                <div id="plot-class-cmp" style="height:340px;"></div>
+              </div>
+            </div>
+            <div class="col-md-5">
+              <div class="card p-3">
+                <h6 class="mb-2">📈 总分分布</h6>
+                <div id="plot-hist" style="height:340px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 每班统计明细 -->
+          <div class="card p-3">
+            <h6 class="mb-2">📋 各班成绩明细</h6>
+            <div class="table-responsive">
+              <table class="class-stats-table" id="class-stats-table"></table>
+            </div>
           </div>
         </div>
       </section>
@@ -1268,15 +1414,17 @@ function ensureSchema() {
   DB.students.forEach(s => { if (s.class) cls.add(s.class); });
   DB.schema.classes = [...cls].sort();
 
-  const subs = new Set(DB.schema.subjects);
+  // 保留用户/AI 已定的科目顺序，只追加新出现的
+  const existingSubs = DB.schema.subjects.slice();
+  DB.grades.forEach(g => { if (g.subject && !existingSubs.includes(g.subject)) existingSubs.push(g.subject); });
+  DB.schema.subjects = existingSubs;
+
   const terms = new Set(DB.schema.terms);
   const exams = new Set(DB.schema.examTypes);
   DB.grades.forEach(g => {
-    if (g.subject) subs.add(g.subject);
     if (g.term) terms.add(g.term);
     if (g.examType) exams.add(g.examType);
   });
-  DB.schema.subjects = [...subs];
   DB.schema.terms = [...terms].sort();
   DB.schema.examTypes = [...exams];
 
@@ -1294,7 +1442,8 @@ function registerSchemaValue(category, value) {
   if (!value || !DB.schema || !DB.schema[category]) return;
   if (!DB.schema[category].includes(value)) {
     DB.schema[category].push(value);
-    if (category === 'subjects' || category === 'classes' || category === 'examTypes') {
+    // 不再自动排序 subjects（用户能拖拽决定顺序）
+    if (category === 'classes' || category === 'examTypes') {
       DB.schema[category].sort();
     }
   }
@@ -1594,21 +1743,46 @@ function delStudent(id) {
 }
 
 /* ==================== 成绩模块 ==================== */
+let _gradesEditing = false;
+
+function toggleGradeEdit() {
+  _gradesEditing = !_gradesEditing;
+  const btn = document.getElementById('grade-edit-btn');
+  if (btn) {
+    btn.classList.toggle('active', _gradesEditing);
+    btn.textContent = _gradesEditing ? '✓ 完成编辑' : '✏️ 编辑';
+  }
+  renderGrades();
+}
+
 function renderGrades() {
   const term = document.getElementById('grade-term').value;
   const exam = document.getElementById('grade-exam').value;
   const cls = document.getElementById('grade-class').value;
   const students = DB.students.filter(s => !cls || s.class===cls);
   const relevantGrades = DB.grades.filter(g => g.term===term && g.examType===exam);
-  const subjects = [...new Set(relevantGrades.map(g=>g.subject))].sort();
 
+  // 显示模式：只列出已有成绩的科目；编辑模式：列出 schema 所有科目（按 schema 顺序）
+  const subjects = _gradesEditing
+    ? (DB.schema?.subjects || []).slice()
+    : (DB.schema?.subjects || [])
+        .filter(sub => relevantGrades.some(g => g.subject === sub));   // 保持 schema 顺序
+
+  // 兜底：schema 还没收集到的旧数据
+  relevantGrades.forEach(g => { if (g.subject && !subjects.includes(g.subject)) subjects.push(g.subject); });
+
+  const tableEl = document.getElementById('grades-table');
   const thead = document.getElementById('grades-thead');
   const tbody = document.getElementById('grades-tbody');
-  if (!students.length) { thead.innerHTML=''; tbody.innerHTML = '<tr><td class="text-center text-muted py-4">请先在「学生管理」录入学生</td></tr>'; return; }
-  if (!subjects.length) { thead.innerHTML=''; tbody.innerHTML = '<tr><td class="text-center text-muted py-4">本学期本考试暂无成绩，点击「录入成绩」开始</td></tr>'; return; }
+  tableEl.classList.toggle('editing', _gradesEditing);
 
-  thead.innerHTML = `<tr><th>学号</th><th>姓名</th><th>班级</th>${subjects.map(s=>`<th>${s}</th>`).join('')}<th>总分</th><th>平均</th><th>班排名</th></tr>`;
-  // 计算每个学生总分（用于排名）
+  if (!students.length) { thead.innerHTML=''; tbody.innerHTML = '<tr><td class="text-center text-muted py-4">请先在「学生管理」录入学生</td></tr>'; return; }
+  if (!subjects.length) { thead.innerHTML=''; tbody.innerHTML = '<tr><td class="text-center text-muted py-4">本学期本考试暂无成绩，点击「录入成绩」或「编辑」开始</td></tr>'; return; }
+
+  const handleCol = _gradesEditing ? '<th style="width:30px;"></th>' : '';
+  thead.innerHTML = `<tr>${handleCol}<th>学号</th><th>姓名</th><th>班级</th>${subjects.map((s, i) => `<th class="${_gradesEditing ? 'draggable' : ''}" ${_gradesEditing ? `draggable="true" data-col-sub="${_escapeHtml(s)}"` : ''}>${_escapeHtml(s)}</th>`).join('')}<th>总分</th><th>平均</th><th>班排名</th></tr>`;
+
+  // 计算每个学生总分
   const rows = students.map(s => {
     const scores = subjects.map(sub => {
       const g = relevantGrades.find(x=>x.studentId===s.id && x.subject===sub);
@@ -1624,13 +1798,358 @@ function renderGrades() {
   Object.entries(rows.reduce((acc,r)=>{ (acc[r.s.class] ||= []).push(r); return acc; }, {})).forEach(([cn, arr])=>{
     arr.filter(r=>r.total!==null).sort((a,b)=>b.total-a.total).forEach((r,i)=>{ classRanks[r.s.id] = i+1; });
   });
-  tbody.innerHTML = rows.map(r => `
-    <tr>
-      <td>${r.s.no}</td><td>${r.s.name}</td><td>${r.s.class}</td>
-      ${r.scores.map(x=>`<td>${x===null?'-':x}</td>`).join('')}
+
+  tbody.innerHTML = rows.map(r => {
+    const rowAttrs = _gradesEditing ? `draggable="true" data-row-sid="${r.s.id}"` : '';
+    const handleCell = _gradesEditing ? '<td class="row-handle">⋮⋮</td>' : '';
+    return `<tr ${rowAttrs}>
+      ${handleCell}
+      <td>${_escapeHtml(r.s.no)}</td><td>${_escapeHtml(r.s.name)}</td><td>${_escapeHtml(r.s.class)}</td>
+      ${r.scores.map((x, i) => {
+        const sub = subjects[i];
+        if (_gradesEditing) {
+          return `<td><input type="number" min="0" max="150" step="0.5" class="grade-inline-input" data-sid="${r.s.id}" data-sub="${_escapeHtml(sub)}" value="${x===null?'':x}" onblur="saveInlineGrade(this)" onkeydown="if(event.key==='Enter')this.blur()"></td>`;
+        }
+        return `<td>${x===null?'-':x}</td>`;
+      }).join('')}
       <td><b>${r.total===null?'-':r.total}</b></td><td>${r.avg}</td><td>${classRanks[r.s.id]||'-'}</td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
+
+  if (_gradesEditing) attachGradeDragHandlers();
 }
+
+/* === inline 编辑保存 === */
+function saveInlineGrade(input) {
+  const sid  = input.dataset.sid;
+  const sub  = input.dataset.sub;
+  const term = document.getElementById('grade-term').value;
+  const exam = document.getElementById('grade-exam').value;
+  const val  = input.value.trim();
+  const idx = DB.grades.findIndex(g => g.studentId===sid && g.subject===sub && g.term===term && g.examType===exam);
+  if (val === '') {
+    if (idx >= 0) DB.grades.splice(idx, 1);
+  } else {
+    const score = Number(val);
+    if (isNaN(score)) return;
+    const rec = { studentId: sid, subject: sub, score, term, examType: exam };
+    if (idx >= 0) DB.grades[idx] = rec; else DB.grades.push(rec);
+    registerSchemaValue('subjects', sub);
+    registerSchemaValue('terms', term);
+    registerSchemaValue('examTypes', exam);
+  }
+  saveDB();
+  // 仅刷新总分/平均/排名三列，不重渲染（避免焦点丢失）
+  recomputeGradeSummaryCells();
+}
+
+function recomputeGradeSummaryCells() {
+  const term = document.getElementById('grade-term').value;
+  const exam = document.getElementById('grade-exam').value;
+  const relevantGrades = DB.grades.filter(g => g.term===term && g.examType===exam);
+  const tbody = document.getElementById('grades-tbody');
+  const trs = [...tbody.querySelectorAll('tr')];
+  // 收集每行
+  const rowsData = trs.map(tr => {
+    const sid = tr.dataset.rowSid;
+    if (!sid) return null;
+    const gs = relevantGrades.filter(g => g.studentId === sid);
+    const valid = gs.map(g => Number(g.score)).filter(x => !isNaN(x));
+    const total = valid.reduce((a,b)=>a+b, 0);
+    const avg = valid.length ? (total/valid.length).toFixed(1) : '-';
+    return { tr, sid, total: valid.length?total:null, avg };
+  }).filter(Boolean);
+  // 按班级算排名
+  const byClass = {};
+  rowsData.forEach(rd => {
+    const stu = DB.students.find(s => s.id === rd.sid);
+    if (!stu) return;
+    (byClass[stu.class] ||= []).push(rd);
+  });
+  const ranks = {};
+  Object.values(byClass).forEach(arr => {
+    arr.filter(r => r.total !== null).sort((a,b) => b.total - a.total).forEach((r,i) => { ranks[r.sid] = i+1; });
+  });
+  // 更新最后 3 列
+  rowsData.forEach(rd => {
+    const tds = rd.tr.querySelectorAll('td');
+    if (tds.length < 3) return;
+    tds[tds.length-3].innerHTML = `<b>${rd.total===null?'-':rd.total}</b>`;
+    tds[tds.length-2].textContent = rd.avg;
+    tds[tds.length-1].textContent = ranks[rd.sid] || '-';
+  });
+}
+
+/* === 列/行拖拽 === */
+function attachGradeDragHandlers() {
+  // 列拖拽
+  document.querySelectorAll('#grades-table th.draggable').forEach(th => {
+    th.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', JSON.stringify({ kind:'col', sub: th.dataset.colSub }));
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    th.addEventListener('dragover', e => { e.preventDefault(); th.classList.add('drag-target-col'); });
+    th.addEventListener('dragleave', () => th.classList.remove('drag-target-col'));
+    th.addEventListener('drop', e => {
+      e.preventDefault();
+      th.classList.remove('drag-target-col');
+      let payload; try { payload = JSON.parse(e.dataTransfer.getData('text/plain')); } catch(_) { return; }
+      if (payload.kind !== 'col' || payload.sub === th.dataset.colSub) return;
+      const subs = DB.schema.subjects.slice();
+      const fromIdx = subs.indexOf(payload.sub);
+      const toIdx   = subs.indexOf(th.dataset.colSub);
+      if (fromIdx < 0 || toIdx < 0) return;
+      const [moved] = subs.splice(fromIdx, 1);
+      subs.splice(toIdx, 0, moved);
+      DB.schema.subjects = subs;
+      saveDB();
+      renderGrades();
+    });
+  });
+  // 行拖拽
+  document.querySelectorAll('#grades-table tbody tr[draggable="true"]').forEach(tr => {
+    tr.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', JSON.stringify({ kind:'row', sid: tr.dataset.rowSid }));
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    tr.addEventListener('dragover', e => { e.preventDefault(); tr.classList.add('drag-target-row'); });
+    tr.addEventListener('dragleave', () => tr.classList.remove('drag-target-row'));
+    tr.addEventListener('drop', e => {
+      e.preventDefault();
+      tr.classList.remove('drag-target-row');
+      let payload; try { payload = JSON.parse(e.dataTransfer.getData('text/plain')); } catch(_) { return; }
+      if (payload.kind !== 'row' || payload.sid === tr.dataset.rowSid) return;
+      // 重排 DB.students：从源位置抽出，插到目标位置之前
+      const fromIdx = DB.students.findIndex(s => s.id === payload.sid);
+      const toIdx   = DB.students.findIndex(s => s.id === tr.dataset.rowSid);
+      if (fromIdx < 0 || toIdx < 0) return;
+      const [moved] = DB.students.splice(fromIdx, 1);
+      const newToIdx = DB.students.findIndex(s => s.id === tr.dataset.rowSid);
+      DB.students.splice(newToIdx, 0, moved);
+      saveDB();
+      renderGrades();
+    });
+  });
+}
+
+/* ==================== 成绩数据分析（第二子页）==================== */
+let _plotlyLoaded = false;
+let _analyInited  = false;
+
+async function showGradeSubTab(tab) {
+  document.querySelectorAll('.grade-subnav button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('grade-tab-table').style.display    = (tab === 'table')    ? '' : 'none';
+  document.getElementById('grade-tab-analysis').style.display = (tab === 'analysis') ? '' : 'none';
+  if (tab !== 'analysis') return;
+
+  if (!_plotlyLoaded) {
+    const status = document.getElementById('plot-3d-empty');
+    status.style.display = 'block';
+    status.innerHTML = '<div style="font-size:48px;margin-bottom:12px;">⏳</div><div>首次加载 Plotly.js（约 3MB，需要联网，仅本次会话需要）…</div>';
+    try {
+      await _loadScript('https://cdn.plot.ly/plotly-2.27.0.min.js');
+      _plotlyLoaded = true;
+    } catch(e) {
+      status.innerHTML = '<div style="font-size:48px;margin-bottom:12px;">⚠️</div><div>Plotly 加载失败：' + e.message + '<br>请检查网络</div>';
+      return;
+    }
+  }
+  if (!_analyInited) {
+    initAnalysisControls();
+    _analyInited = true;
+  } else {
+    syncAnalysisControls();
+  }
+  renderGradeAnalysis();
+}
+
+function initAnalysisControls() {
+  // 学期/考试/班级/三轴下拉的初始填充
+  const term = document.getElementById('grade-term').value;
+  const exam = document.getElementById('grade-exam').value;
+
+  const fillSelect = (id, options, selected) => {
+    const el = document.getElementById(id);
+    const cur = el.value || selected;
+    el.innerHTML = options.map(o => `<option value="${_escapeHtml(o)}"${o===cur?' selected':''}>${_escapeHtml(o)}</option>`).join('');
+  };
+
+  fillSelect('analy-term', DB.schema.terms.length ? DB.schema.terms : [term], term);
+  fillSelect('analy-exam', DB.schema.examTypes.length ? DB.schema.examTypes : [exam], exam);
+
+  // 班级下拉
+  const classOpts = ['', ...DB.schema.classes];
+  const clsEl = document.getElementById('analy-class');
+  clsEl.innerHTML = classOpts.map(c => `<option value="${_escapeHtml(c)}">${c || '全部班级'}</option>`).join('');
+
+  // 三轴下拉用 schema.subjects；默认 X=第一科,Y=第二,Z=第三
+  const subs = DB.schema.subjects;
+  ['analy-x', 'analy-y', 'analy-z'].forEach((id, i) => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = subs.map((s, idx) => `<option value="${_escapeHtml(s)}"${idx === i ? ' selected' : ''}>${_escapeHtml(s)}</option>`).join('');
+  });
+}
+
+function syncAnalysisControls() {
+  // 数据库变了，刷新选项但保留当前选择
+  ['analy-term','analy-exam','analy-class','analy-x','analy-y','analy-z'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    // do nothing for now; full re-init only if user clicks reset
+  });
+}
+
+function renderGradeAnalysis() {
+  if (!_plotlyLoaded || typeof Plotly === 'undefined') return;
+  const term = document.getElementById('analy-term').value;
+  const exam = document.getElementById('analy-exam').value;
+  const cls  = document.getElementById('analy-class').value;
+  const xSub = document.getElementById('analy-x').value;
+  const ySub = document.getElementById('analy-y').value;
+  const zSub = document.getElementById('analy-z').value;
+
+  const students = DB.students.filter(s => !cls || s.class === cls);
+  const grades = DB.grades.filter(g => g.term === term && g.examType === exam);
+
+  // 颜色按班级
+  const allClasses = [...new Set(students.map(s => s.class))].sort();
+  const palette = ['#0071e3', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16'];
+  const classColor = {};
+  allClasses.forEach((c, i) => { classColor[c] = palette[i % palette.length]; });
+
+  // === 1) KPI ===
+  const totals = students.map(s => {
+    const sg = grades.filter(g => g.studentId === s.id);
+    return sg.length ? sg.reduce((a, g) => a + g.score, 0) : null;
+  }).filter(x => x !== null);
+  const setKpi = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setKpi('kpi-students', totals.length);
+  setKpi('kpi-avg', totals.length ? (totals.reduce((a,b)=>a+b,0)/totals.length).toFixed(1) : '—');
+  setKpi('kpi-max', totals.length ? Math.max(...totals) : '—');
+  setKpi('kpi-min', totals.length ? Math.min(...totals) : '—');
+
+  // === 2) 3D 散点 ===
+  const empty = document.getElementById('plot-3d-empty');
+  const plot3d = document.getElementById('plot-3d');
+  if (!xSub || !ySub || !zSub || (DB.schema.subjects.length < 3)) {
+    empty.style.display = 'block';
+    empty.innerHTML = '<div style="font-size:48px;margin-bottom:12px;">📊</div><div>需要至少 3 个科目才能画 3D 散点图</div>';
+    Plotly.purge(plot3d);
+  } else {
+    empty.style.display = 'none';
+    const traces = [];
+    allClasses.forEach(cn => {
+      const cs = students.filter(s => s.class === cn);
+      const xs = [], ys = [], zs = [], texts = [];
+      cs.forEach(s => {
+        const gx = grades.find(g => g.studentId===s.id && g.subject===xSub);
+        const gy = grades.find(g => g.studentId===s.id && g.subject===ySub);
+        const gz = grades.find(g => g.studentId===s.id && g.subject===zSub);
+        if (gx && gy && gz) {
+          xs.push(gx.score); ys.push(gy.score); zs.push(gz.score);
+          texts.push(`${s.name} (${s.class})<br>${xSub}: ${gx.score}<br>${ySub}: ${gy.score}<br>${zSub}: ${gz.score}`);
+        }
+      });
+      if (xs.length) traces.push({
+        x: xs, y: ys, z: zs,
+        mode: 'markers', type: 'scatter3d',
+        name: cn,
+        text: texts,
+        hovertemplate: '%{text}<extra></extra>',
+        marker: { size: 5, color: classColor[cn], opacity: 0.85, line: { color: '#fff', width: 0.5 } }
+      });
+    });
+    if (!traces.length) {
+      empty.style.display = 'block';
+      empty.innerHTML = '<div style="font-size:48px;margin-bottom:12px;">📭</div><div>当前筛选下没有同时拥有这 3 门成绩的学生</div>';
+      Plotly.purge(plot3d);
+    } else {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      const fontColor = isDark ? '#e5e5e7' : '#1d1d1f';
+      Plotly.newPlot(plot3d, traces, {
+        scene: {
+          xaxis: { title: xSub, color: fontColor },
+          yaxis: { title: ySub, color: fontColor },
+          zaxis: { title: zSub, color: fontColor },
+          bgcolor: 'rgba(0,0,0,0)'
+        },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        font: { color: fontColor, family: '-apple-system, "PingFang SC", "Microsoft YaHei", sans-serif' },
+        margin: { l:0, r:0, b:0, t:8 },
+        legend: { x:0, y:1 }
+      }, { responsive:true, displayModeBar:false });
+    }
+  }
+
+  // === 3) 班级 × 科目 平均分对比（grouped bar） ===
+  const cmpEl = document.getElementById('plot-class-cmp');
+  const subList = DB.schema.subjects.slice(0, 12);
+  if (allClasses.length && subList.length) {
+    const cmpTraces = allClasses.map(cn => {
+      const cs = students.filter(s => s.class === cn);
+      const sids = cs.map(s => s.id);
+      const avgs = subList.map(sub => {
+        const sc = grades.filter(g => sids.includes(g.studentId) && g.subject === sub).map(g => g.score);
+        return sc.length ? +(sc.reduce((a,b)=>a+b,0) / sc.length).toFixed(1) : null;
+      });
+      return { x: subList, y: avgs, name: cn, type: 'bar', marker: { color: classColor[cn] } };
+    });
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const fc = isDark ? '#e5e5e7' : '#1d1d1f';
+    Plotly.newPlot(cmpEl, cmpTraces, {
+      barmode: 'group',
+      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+      font: { color: fc, size: 11 },
+      margin: { l:40, r:10, b:50, t:10 },
+      xaxis: { tickangle: -30 },
+      yaxis: { title: '平均分' },
+      legend: { orientation: 'h', y: -0.2 }
+    }, { responsive:true, displayModeBar:false });
+  } else {
+    cmpEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:80px 20px;">数据不足</div>';
+  }
+
+  // === 4) 总分分布直方图 ===
+  const histEl = document.getElementById('plot-hist');
+  if (totals.length) {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const fc = isDark ? '#e5e5e7' : '#1d1d1f';
+    Plotly.newPlot(histEl, [{
+      x: totals, type: 'histogram',
+      marker: { color: '#0071e3', line: { color: '#fff', width: 1 } },
+      nbinsx: Math.min(20, Math.max(5, Math.floor(totals.length/3)))
+    }], {
+      paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+      font: { color: fc, size: 11 },
+      margin: { l:40, r:10, b:40, t:10 },
+      xaxis: { title: '总分' }, yaxis: { title: '人数' }
+    }, { responsive:true, displayModeBar:false });
+  } else {
+    histEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:80px 20px;">无数据</div>';
+  }
+
+  // === 5) 各班统计表 ===
+  const tbl = document.getElementById('class-stats-table');
+  if (allClasses.length) {
+    const rows = allClasses.map(cn => {
+      const sids = students.filter(s => s.class === cn).map(s => s.id);
+      const gs = grades.filter(g => sids.includes(g.studentId));
+      const totalsByStu = sids.map(sid => {
+        const sg = gs.filter(g => g.studentId === sid);
+        return sg.length ? sg.reduce((a, g) => a + g.score, 0) : null;
+      }).filter(x => x !== null);
+      if (!totalsByStu.length) return `<tr><td>${_escapeHtml(cn)}</td><td colspan="5" style="text-align:center;color:var(--text-muted);">无数据</td></tr>`;
+      const avg = totalsByStu.reduce((a,b)=>a+b,0) / totalsByStu.length;
+      const mx = Math.max(...totalsByStu), mn = Math.min(...totalsByStu);
+      const std = Math.sqrt(totalsByStu.reduce((acc,v) => acc + (v-avg)**2, 0) / totalsByStu.length);
+      return `<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${classColor[cn]};margin-right:6px;"></span>${_escapeHtml(cn)}</td><td>${sids.length}</td><td>${avg.toFixed(1)}</td><td>${mx}</td><td>${mn}</td><td>${std.toFixed(1)}</td></tr>`;
+    });
+    tbl.innerHTML = `<thead><tr><th>班级</th><th>人数</th><th>平均总分</th><th>最高</th><th>最低</th><th>标准差</th></tr></thead><tbody>${rows.join('')}</tbody>`;
+  } else {
+    tbl.innerHTML = '<tbody><tr><td style="text-align:center;color:var(--text-muted);padding:20px;">无数据</td></tr></tbody>';
+  }
+}
+
 function openGradeModal() {
   if (!DB.students.length) { alert('请先在「学生管理」录入学生'); return; }
   document.getElementById('gm-term').textContent = document.getElementById('grade-term').value;
